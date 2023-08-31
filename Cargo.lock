@@ -9,6 +9,7 @@ dependencies = [
  "ark-bn254",
  "ark-ec",
  "ark-ff",
+ "ark-std",
  "crypto-bigint 0.5.2",
  "digest 0.10.7",
  "elliptic-curve 0.13.5",

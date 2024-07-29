@@ -196,6 +196,7 @@ dependencies = [
  "ark-bn254",
  "ark-ec",
  "ark-ff",
+ "ark-serialize",
  "ark-std",
  "bn254_hash2curve",
  "crypto-bigint 0.5.2",

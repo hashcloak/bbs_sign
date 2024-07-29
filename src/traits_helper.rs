@@ -61,7 +61,7 @@ impl<const L: usize> FromOkm<L> for Fq {
     }
 }
 
-fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
+pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
         
     let b_in_bytes: usize = 32;
     let ell = (len_in_bytes + b_in_bytes - 1 )/ b_in_bytes;

@@ -2,9 +2,10 @@ use ark_bn254::{fr::Fr, G1Affine as G1, g1::G1_GENERATOR_X, g1::G1_GENERATOR_Y};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use digest::generic_array::{GenericArray, typenum::U48};
 use crate::traits_helper::{hash_to_scalar, FromOkm};
+use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
 
 // Public Key
-#[derive(Debug, Default)]
+#[derive(Debug, Default,CanonicalDeserialize,CanonicalSerialize)]
 pub struct PublicKey{
     pub pk: G1
 }

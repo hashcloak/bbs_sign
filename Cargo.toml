@@ -1,5 +1,5 @@
 [package]
-name = "BBS_plus"
+name = "bbs_plus"
 version = "0.1.0"
 edition = "2021"
 
@@ -22,3 +22,4 @@ elliptic-curve = "0.13.5"
 subtle = "2.5.0"
 ark-ec = "0.4.2"
 ark-std = "0.4.0"
+bn254_hash2curve ={ git = "https://github.com/hashcloak/bn254-hash-to-curve.git", features = ["gnark_crypto_compatible"]}

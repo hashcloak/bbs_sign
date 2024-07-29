@@ -1,18 +1,18 @@
 
 use crate::traits_helper::*;
 use rand::prelude::*;
-use ark_bn254::{fq::Fq, fq2::Fq2, fr::Fr, Bn254, Fq12, G1Affine as G1, G2Affine as G2, Config, g1::{G1_GENERATOR_X, G1Affine}, g1::G1_GENERATOR_Y};
+use ark_bn254::{fr::Fr, G1Affine as G1, g1::G1_GENERATOR_X, g1::G1_GENERATOR_Y};
 use digest::generic_array::{GenericArray, typenum::U48};
 
 #[derive(Debug)]
 pub struct PublicKey {
-    pub_key: G1
+    pub pub_key: G1
 }
 
 #[derive(Debug)]
 pub struct SecretKey {
-    priv_key: Fr,
-    pub_key: PublicKey,
+    pub priv_key: Fr,
+    pub pub_key: PublicKey,
 }
 
 pub fn generate_keypair () -> SecretKey {

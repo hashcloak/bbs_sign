@@ -3,28 +3,6 @@
 version = 3
 
 [[package]]
-name = "BBS_plus"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
- "ark-std",
- "crypto-bigint 0.5.2",
- "digest 0.10.7",
- "elliptic-curve 0.13.5",
- "hash2field",
- "hex",
- "hkdf",
- "num-bigint",
- "num-integer",
- "rand",
- "sha2",
- "sha256",
- "subtle",
-]
-
-[[package]]
 name = "ahash"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -171,12 +149,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
 
 [[package]]
+name = "bbs_plus"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-std",
+ "bn254_hash2curve",
+ "crypto-bigint 0.5.2",
+ "digest 0.10.7",
+ "elliptic-curve 0.13.5",
+ "hash2field",
+ "hex",
+ "hkdf",
+ "num-bigint",
+ "num-integer",
+ "rand",
+ "sha2",
+ "sha256",
+ "subtle",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "bn254_hash2curve"
+version = "0.1.0"
+source = "git+https://github.com/hashcloak/bn254-hash-to-curve.git#5a0934ce9195b7ebd7b82409526027b117728ff1"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "digest 0.10.7",
+ "elliptic-curve 0.13.5",
+ "hex",
+ "num-bigint",
+ "num-integer",
+ "sha2",
+ "subtle",
 ]
 
 [[package]]

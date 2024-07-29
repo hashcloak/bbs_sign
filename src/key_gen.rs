@@ -1,35 +1,51 @@
-
-use crate::traits_helper::*;
-use rand::prelude::*;
 use ark_bn254::{fr::Fr, G1Affine as G1, g1::G1_GENERATOR_X, g1::G1_GENERATOR_Y};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 use digest::generic_array::{GenericArray, typenum::U48};
+use crate::traits_helper::{hash_to_scalar, FromOkm};
 
-#[derive(Debug)]
-pub struct PublicKey {
-    pub pub_key: G1
+// Public Key
+#[derive(Debug, Default)]
+pub struct PublicKey{
+    pub pk: G1
 }
 
-#[derive(Debug)]
-pub struct SecretKey {
-    pub priv_key: Fr,
-    pub pub_key: PublicKey,
+// Secret Key
+#[derive(Debug, Default, Zeroize, ZeroizeOnDrop)]
+pub struct SecretKey{
+    sk: Fr
 }
 
-pub fn generate_keypair () -> SecretKey {
+// https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-secret-key
+pub fn key_gen(key_material: &mut [u8], key_info: &[u8],key_dst: &[u8]) -> SecretKey {
 
-    let mut rng = thread_rng();
-    let mut s = vec![0u8, 32];
-    rng.fill_bytes(s.as_mut_slice());
+    assert!(key_material.len() >= 32);
+    assert!(key_info.len() <= 65535);
 
-    let sk = gen_sk(s.as_slice());
-    let mut pk: G1 = G1::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y);
-    pk = (pk * sk).into();
+    let mut derive_input = Vec::<u8>::with_capacity(key_material.len() + 2 + key_info.len());
 
-    SecretKey { priv_key: sk, pub_key: PublicKey {
-        pub_key: pk
-    } }
+    derive_input.extend_from_slice(key_material.as_ref());
+    derive_input.extend_from_slice(&[(key_info.len() >> 8) as u8]);
+    derive_input.extend_from_slice(&[(key_info.len() & 0xff) as u8]);
+    derive_input.extend_from_slice(key_info.as_ref());
+
+    let sk = hash_to_scalar(&derive_input, key_dst);
+    key_material.zeroize();
+
+    assert!(sk != Fr::from(0));
+
+    SecretKey{
+        sk
+    }
 }
 
+pub fn sk_to_pk(sk: &SecretKey) -> PublicKey {
+    PublicKey{
+        pk: (G1::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y) * sk.sk).into()}
+}
+
+// TODO: may not be required. `key_gen` implements the generation of secret key according to the spec
+// https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-05#name-keygen
+// https://github.com/mattrglobal/bbs-signatures/blob/e0ae711ce8da425d671c748201106a5d1bf2bd5b/src/bls12381.rs#L354
 pub fn gen_sk(msg: &[u8]) -> Fr {
     const SALT: &[u8] = b"BBS-SIG-KEYGEN-SALT-";
     // copy of `msg` with appended zero byte
@@ -43,4 +59,51 @@ pub fn gen_sk(msg: &[u8]) -> Fr {
         .is_ok());
     let result_array: [u8;48] = result.as_slice().try_into().expect("wrong length!");
     Fr::from_okm(&result_array)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::key_gen::key_gen;
+    use crate::key_gen::sk_to_pk;
+    use zeroize::Zeroize;
+    use ark_bn254::Fr;
+
+    #[test]
+    fn test_key_gen() {
+        let mut key_material = [0u8; 32];
+        let key_dst = b"BBS-SIG-KEYGEN-SALT-";
+
+        // key_info and key_dst are optional
+        let sk1 = key_gen(&mut key_material, &[], key_dst.as_slice());
+        let sk2 = key_gen(&mut key_material, &[], key_dst.as_slice());
+        let pk1 = sk_to_pk(&sk1);
+        let pk2 = sk_to_pk(&sk2);
+
+        // check sk is non-zero
+        assert!(sk1.sk != Fr::from(0));
+
+        // check key_material is zeroid after use
+        assert!(key_material == [0u8; 32]);
+
+        // check pk is generated deterministically
+        assert_eq!(pk1.pk, pk2.pk);
+    }
+
+    #[test]
+    fn test_zeroize() {
+        let mut key_material = [0u8; 32];
+        let key_dst = b"BBS-SIG-KEYGEN-SALT-";
+
+        // key_info and key_dst are optional
+        let mut sk = key_gen(&mut key_material, &[], key_dst.as_slice());
+        let _ = sk_to_pk(&sk);
+        
+        // zeroize the secret key after generating public key
+        sk.zeroize();
+
+        // check sk is zeroid
+        assert!(sk.sk == Fr::from(0));
+        assert!(key_material == [0u8; 32]);
+    }
 }

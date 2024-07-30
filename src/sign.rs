@@ -1,17 +1,11 @@
-use ark_bn254::{
-    fr::Fr,
-    g1::G1Affine as G1
-};
-use crate::traits_helper::{
-    hash_to_scalar,
-    expand_message
-};
-use crate::key_gen::{
-    PublicKey, SecretKey
-};
-
+use ark_bn254::{ fr::Fr, g1::G1Affine as G1};
+use ark_ec::{AffineRepr, CurveGroup};
+use ark_ff::fields::Field;
 use bn254_hash2curve::hash2g1::HashToG1;
 use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
+
+use crate::traits_helper::{ hash_to_scalar, expand_message };
+use crate::key_gen::{ PublicKey, SecretKey };
 
 // signature
 #[derive(Debug, Default, CanonicalSerialize, CanonicalDeserialize)]
@@ -56,6 +50,7 @@ pub fn create_generators(count: usize, api_id: &[u8]) -> Vec<G1> {
     generators
 }
 
+#[allow(unused_variables)]
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-generation-sign
 pub fn sign(secret_key: &SecretKey, messages: &[&[u8]], api_id: &[u8]) -> Signature {
     //TODO:
@@ -63,13 +58,55 @@ pub fn sign(secret_key: &SecretKey, messages: &[&[u8]], api_id: &[u8]) -> Signat
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coresign
-pub fn core_sign(secret_key: &SecretKey, messages: &[&[u8]], api_id: &[u8]) -> Signature {
-    //TODO:
-    Signature::default()
+pub fn core_sign(secret_key: &SecretKey, public_key: &PublicKey, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> Signature {
+    
+    assert!(messages.len() + 1 == generators.len());
+
+    let domain = calculate_domain(public_key, generators[0], &generators[1..], header, api_id);
+
+    let hash_to_scalar_dst = [api_id, b"H2S_"].concat();
+
+    let mut sk_compressed_bytes = Vec::new();
+    secret_key.serialize_compressed(&mut sk_compressed_bytes).unwrap();
+
+    let mut domain_compressed_bytes: Vec<u8> = Vec::new();
+    domain.serialize_compressed(&mut domain_compressed_bytes).unwrap();
+
+    let mut serialize_bytes = Vec::new();
+    serialize_bytes.extend_from_slice(&sk_compressed_bytes);
+
+    for msg in messages {
+
+        let mut msg_serialize_bytes = Vec::new();
+        let _ = msg.0.serialize_compressed(&mut msg_serialize_bytes);
+        serialize_bytes.extend_from_slice(msg_serialize_bytes.as_slice());
+    }
+
+    serialize_bytes.extend_from_slice(&domain_compressed_bytes);
+
+    let e = hash_to_scalar(serialize_bytes.as_slice(), hash_to_scalar_dst.as_slice());
+
+    // TODO: a fixed Parameters:
+    // - P1, fixed point of G1, defined by the ciphersuite.
+    #[allow(non_snake_case)]
+    let P1 = G1::generator();
+
+    let mut b = P1;
+
+    b = (b + (generators[0] * domain).into_affine()).into();
+
+    for i in 1..generators.len() {
+        b = (b + generators[i] * messages[i - 1]).into_affine();
+    }
+
+    let sk_plus_e_inverse = (secret_key.sk + e).inverse().unwrap();
+    let a: G1 = (b * sk_plus_e_inverse).into();
+
+    Signature { a, e }
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-domain-calculation
-pub fn calculate_domain(pk: PublicKey, q_1: G1, h_points: &[G1], header: &[u8], api_id: &[u8]) -> Fr {
+pub fn calculate_domain(pk: &PublicKey, q_1: G1, h_points: &[G1], header: &[u8], api_id: &[u8]) -> Fr {
     
     let l = h_points.len();
     let mut dom_octs = Vec::new();
@@ -86,6 +123,8 @@ pub fn calculate_domain(pk: PublicKey, q_1: G1, h_points: &[G1], header: &[u8], 
         dom_octs.extend_from_slice(&compressed_bytes);
     }
 
+    dom_octs.extend_from_slice(api_id);
+    
     let mut compressed_bytes = Vec::new();
     pk.serialize_compressed(&mut compressed_bytes).unwrap();
 

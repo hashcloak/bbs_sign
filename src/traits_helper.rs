@@ -38,7 +38,10 @@ impl<const L: usize> FromOkm<L> for Fr {
 
         let mut x = BigUint::from_bytes_be(&data[..]);
             x = x.mod_floor(&p);
-            let t = x.to_bytes_be();
+            let mut t = x.to_bytes_be();
+            while t.len() < 32 {
+                t.insert(0, 0u8);
+            }
             let t = GenericArray::<u8, U32>::clone_from_slice(&t);
 
             Fr::from_bytes32(t)
@@ -54,7 +57,10 @@ impl<const L: usize> FromOkm<L> for Fq {
 
         let mut x = BigUint::from_bytes_be(&data[..]);
             x = x.mod_floor(&p);
-            let t = x.to_bytes_be();
+            let mut t = x.to_bytes_be();
+            while t.len() < 32 {
+                t.insert(0, 0u8);
+            }
             let t = GenericArray::<u8, U32>::clone_from_slice(&t);
 
             Fq::from_bytes32(t)

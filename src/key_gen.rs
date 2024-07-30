@@ -1,19 +1,21 @@
-use ark_bn254::{fr::Fr, G1Affine as G1, g1::G1_GENERATOR_X, g1::G1_GENERATOR_Y};
+use ark_bn254::{ Fr, G2Affine as G2};
+use ark_ec::{ CurveGroup, AffineRepr };
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use digest::generic_array::{GenericArray, typenum::U48};
-use crate::traits_helper::{hash_to_scalar, FromOkm};
-use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
+use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
+
+use crate::traits_helper::{ hash_to_scalar, FromOkm};
 
 // Public Key
-#[derive(Debug, Default,CanonicalDeserialize,CanonicalSerialize)]
+#[derive(Debug, Default,CanonicalDeserialize, CanonicalSerialize)]
 pub struct PublicKey{
-    pub pk: G1
+    pub pk: G2
 }
 
 // Secret Key
-#[derive(Debug, Default, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Default, Zeroize, ZeroizeOnDrop, CanonicalDeserialize, CanonicalSerialize)]
 pub struct SecretKey{
-    sk: Fr
+    pub sk: Fr
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-secret-key
@@ -41,7 +43,7 @@ pub fn key_gen(key_material: &mut [u8], key_info: &[u8],key_dst: &[u8]) -> Secre
 
 pub fn sk_to_pk(sk: &SecretKey) -> PublicKey {
     PublicKey{
-        pk: (G1::new_unchecked(G1_GENERATOR_X, G1_GENERATOR_Y) * sk.sk).into()}
+        pk: (G2::generator() * sk.sk).into_affine()}
 }
 
 // TODO: may not be required. `key_gen` implements the generation of secret key according to the spec

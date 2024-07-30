@@ -7,23 +7,6 @@ use digest::generic_array::typenum::U32;
 pub use sha2::{Sha256, digest::Digest};
 use subtle::{Choice, ConditionallySelectable};
 
-pub trait From {
-    fn from_bytes32(data: GenericArray::<u8, U32>) -> Self;
-}
-
-impl From for Fr {
-    fn from_bytes32(bytes: GenericArray<u8, U32>) -> Self {
-    Fr::from(BigUint::from_bytes_be(bytes.as_slice()))
-    }
-}
-
-impl From for Fq {
-    fn from_bytes32(bytes: GenericArray<u8, U32>) -> Self {
-        Fq::from(BigUint::from_bytes_be(bytes.as_slice()))
-    }
-}
-
-
 pub trait FromOkm<const L: usize>: Sized {
     /// Convert a byte sequence into a scalar
     fn from_okm(data: &[u8; L]) -> Self;
@@ -117,9 +100,4 @@ pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
     buf.into()
 }
 
-//TODO: len_in_bytes should be 48?
-pub fn hash_to_scalar(msg: &[u8], dst: &[u8]) -> Fr {
-    let uniform_bytes = expand_message(msg, dst, 48);
-    let data: &[u8; 48] = &uniform_bytes[0..48].try_into().unwrap();
-    Fr::from_okm(data)
-}
+

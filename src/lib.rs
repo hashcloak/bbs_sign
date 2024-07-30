@@ -1,5 +1,11 @@
+pub mod utils {
+    pub mod interface_utilities;
+    pub mod core_utilities;
+    pub mod utilities_helper;
+}
 pub mod key_gen;
-pub mod traits_helper;
 pub mod sign;
 pub mod verify;
-pub mod tests;
+pub mod tests{
+    pub mod core_sign_tests;
+}

@@ -13,7 +13,8 @@ pub fn create_generators(count: usize, api_id: &[u8]) -> Vec<G1> {
 
     let mut generators: Vec<G1> = Vec::new();
 
-    //TODO: len_in_bytes should be 48?
+    // expand_len aka len_in_bytes = 48: Must be defined to be at least ceil((ceil(log2(r))+k)/8), where log2(r) and k are defined by each ciphersuite 
+    // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-additional-parameters
     let mut v = expand_message(generator_seed.as_slice(), seed_dst.as_slice(), 48);
 
     for i in 0..count {

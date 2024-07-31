@@ -207,6 +207,7 @@ dependencies = [
  "hkdf",
  "num-bigint",
  "num-integer",
+ "once_cell",
  "rand",
  "sha2",
  "sha256",

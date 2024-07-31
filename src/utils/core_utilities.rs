@@ -5,9 +5,12 @@ use super::utilities_helper::{ expand_message, FromOkm};
 use crate::key_gen::PublicKey;
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-hash-to-scalar
-//TODO: len_in_bytes should be 48?
 pub fn hash_to_scalar(msg: &[u8], dst: &[u8]) -> Fr {
+
+    // expand_len aka len_in_bytes = 48: Must be defined to be at least ceil((ceil(log2(r))+k)/8), where log2(r) and k are defined by each ciphersuite 
+    // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-additional-parameters
     let uniform_bytes = expand_message(msg, dst, 48);
+    
     let data: &[u8; 48] = &uniform_bytes[0..48].try_into().unwrap();
     Fr::from_okm(data)
 }

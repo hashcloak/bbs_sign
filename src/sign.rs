@@ -1,13 +1,14 @@
 use ark_bn254::{ fr::Fr, g1::G1Affine as G1, G1Projective};
-use ark_ec::AffineRepr;
 use ark_ff::fields::Field;
 use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
+use ark_ec::AffineRepr;
 
 use crate::key_gen::SecretKey;
 use crate::utils::core_utilities::hash_to_scalar;
 use crate::utils::core_utilities::calculate_domain;
+use crate::constants::P1;
 
-// signature
+// bbs signature
 #[derive(Debug, Default, CanonicalSerialize, CanonicalDeserialize, Clone, Copy)]
 pub struct Signature {
     pub a: G1,
@@ -53,12 +54,7 @@ impl SecretKey {
 
         let e = hash_to_scalar(serialize_bytes.as_slice(), hash_to_scalar_dst.as_slice());
 
-        // TODO: a fixed Parameters:
-        // - P1, fixed point of G1, defined by the ciphersuite.
-        #[allow(non_snake_case)]
-        let P1 = G1::generator();
-
-        let mut b: G1Projective = P1.into();
+        let mut b: G1Projective = P1.into_group();
 
         b = b + generators[0] * domain;
 

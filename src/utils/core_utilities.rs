@@ -11,7 +11,7 @@ pub fn hash_to_scalar(msg: &[u8], dst: &[u8]) -> Fr {
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-additional-parameters
     let uniform_bytes = expand_message(msg, dst, 48);
     
-    let data: &[u8; 48] = &uniform_bytes[0..48].try_into().unwrap();
+    let data: &[u8; 192] = &uniform_bytes[..].try_into().unwrap();
     Fr::from_okm(data)
 }
 

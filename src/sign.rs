@@ -7,6 +7,9 @@ use crate::key_gen::SecretKey;
 use crate::utils::core_utilities::hash_to_scalar;
 use crate::utils::core_utilities::calculate_domain;
 use crate::constants::P1;
+use crate::constants::CIPHERSUITE_ID;
+use crate::utils::interface_utilities::msg_to_scalars;
+use crate::utils::interface_utilities::create_generators;
 
 // bbs signature
 #[derive(Debug, Default, CanonicalSerialize, CanonicalDeserialize, Clone, Copy)]
@@ -19,9 +22,15 @@ impl SecretKey {
     
     #[allow(unused_variables)]
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-generation-sign
-    pub fn sign(&self, messages: &[&[u8]], api_id: &[u8]) -> Signature {
-        //TODO:
-        Signature::default()
+    pub fn sign(&self, messages: &[&[u8]], header: &[u8]) -> Signature {
+        
+        let pk = self.sk_to_pk();
+        let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
+
+        let message_scalars = msg_to_scalars(messages, &api_id);
+        let generators = create_generators(messages.len() + 1, &api_id);
+
+        self.core_sign(generators.as_slice(), header, message_scalars.as_slice(), &api_id)
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coresign

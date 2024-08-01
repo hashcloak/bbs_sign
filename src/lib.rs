@@ -8,5 +8,6 @@ pub mod sign;
 pub mod verify;
 pub mod tests{
     pub mod core_sign_tests;
+    pub mod sign_verify_tests;
 }
 pub mod constants;

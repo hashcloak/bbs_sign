@@ -8,7 +8,7 @@ use crate::utils::utilities_helper::FromOkm;
 use crate::utils::core_utilities::hash_to_scalar;
 
 // Public Key
-#[derive(Debug, Default,CanonicalDeserialize, CanonicalSerialize)]
+#[derive(Debug, Default,CanonicalDeserialize, CanonicalSerialize, Clone)]
 pub struct PublicKey{
     pub pk: G2
 }

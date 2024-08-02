@@ -49,3 +49,18 @@ pub fn calculate_domain(pk: &PublicKey, q_1: G1, h_points: &[G1], header: &[u8],
     hash_to_scalar(&dom_input, &hash_to_scalar_dst)
 
 }
+
+fn get_random(len: usize) -> Vec<u8> {
+    (0..len).map(|_| rand::random::<u8>()).collect()
+}
+
+// https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-random-scalars
+pub fn calculate_random_scalars(count: usize) -> Vec<Fr> {
+    let mut result = Vec::with_capacity(count);
+
+    for _ in 0..count {
+        let data: &[u8; 48] = &get_random(48)[..].try_into().unwrap();
+        result.push(Fr::from_okm(data));
+    }
+    result
+}

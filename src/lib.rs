@@ -9,5 +9,8 @@ pub mod verify;
 pub mod tests{
     pub mod core_sign_tests;
     pub mod sign_verify_tests;
+    pub mod proof_verify_tests;
 }
 pub mod constants;
+pub mod proof_gen;
+pub mod proof_verify;

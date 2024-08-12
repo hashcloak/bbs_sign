@@ -4,6 +4,7 @@ mod tests {
     use crate::key_gen::{PublicKey, SecretKey};
     use crate::proof_gen::proof_gen;
     use crate::proof_verify::proof_verify;
+    use test_case::test_case;
     use rand::Rng;
 
     fn generate_key() -> (SecretKey, PublicKey){
@@ -31,10 +32,12 @@ mod tests {
         random_vecs
     }
 
-    #[test]
-    fn test_proof_verify() {
-        let count = 10;
-        let header = b"";
+    #[test_case(1, vec![0], b"abc")]
+    #[test_case(10, vec![0,1,2], b"")]
+    #[test_case(10, vec![0,4,7,9], b"def")]
+    #[test_case(5, vec![0,4], b"defghjsdjdbcjbejd")]
+    #[test_case(5, vec![0,1,2,3,4], b"def")]
+    fn test_proof_verify(count: usize, disclosed_indexes: Vec<usize>, header: &[u8]) {
         let (sk, pk) = generate_key();
 
         let messages = generate_random_msg(count);
@@ -44,8 +47,9 @@ mod tests {
         let signature = sk.sign(&msg_slices, header);
         assert!(pk.verify(signature, header, &msg_slices));
 
-        let disclosed_indexes: Vec<usize> = vec![0,5];
+        let disclosed_msgs: Vec<&[u8]> = disclosed_indexes.iter().map(|i| msg_slices[*i]).collect();
+
         let proof = proof_gen(pk.clone(), signature, header, &[], &msg_slices, disclosed_indexes.as_slice());
-        assert!(proof_verify(pk, proof, header, &[], &[msg_slices[0], msg_slices[5]], disclosed_indexes.as_slice()));
+        assert!(proof_verify(pk, proof, header, &[], disclosed_msgs.as_slice(), disclosed_indexes.as_slice()));
     }
 }

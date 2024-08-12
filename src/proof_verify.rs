@@ -33,8 +33,7 @@ pub fn core_proof_verify(pk: PublicKey, proof: Proof, generators: &[G1], header:
     let init_res = proof_verify_init(pk.clone(), proof.clone(), generators, header, &disclosed_messages, disclosed_indexes, api_id);
     let challenge = proof_challenge_calculate(&init_res, disclosed_messages, disclosed_indexes, ph, api_id);
 
-    //TODO: this assertion fails for some reason
-    // assert!(challenge.scalar == proof.challenge.scalar);
+    assert_eq!(challenge.scalar ,proof.challenge.scalar);
     Bn254::pairing(proof.a_bar, pk.pk).0 * Bn254::pairing(proof.b_bar, -BP2.into_group()).0 == Fq12::ONE
     
 }

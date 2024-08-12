@@ -60,6 +60,10 @@ pub fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8], genera
 
     let full_indexes: HashSet<usize> = HashSet::from_iter(0..l);
     let disclosed_set: HashSet<usize> = HashSet::from_iter(disclosed_indexes.iter().cloned());
+
+    let mut disclosed_indexes: Vec<usize> = disclosed_set.clone().into_iter().collect();
+    disclosed_indexes.sort();
+
     let undisclosed_set: HashSet<usize> = full_indexes.difference(&disclosed_set).cloned().collect();
 
     let mut undisclosed_indexes: Vec<usize> = undisclosed_set.into_iter().collect();
@@ -87,7 +91,7 @@ pub fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8], genera
     .filter_map(|&i| messages.get(i).cloned())
     .collect();
 
-    let challenge = proof_challenge_calculate(&init_res, disclosed_messages.as_slice(), disclosed_indexes, ph, api_id);
+    let challenge = proof_challenge_calculate(&init_res, disclosed_messages.as_slice(), disclosed_indexes.as_slice(), ph, api_id);
 
     proof_finalize(&init_res, &challenge, signature.e, &random_scalars, undisclosed_messages.as_slice())
     
@@ -172,7 +176,7 @@ pub fn proof_finalize(init_res: &InitProof, challenge: &Challenge, e_value: Fr, 
     assert_eq!(undisclosed_messages.len() + 5, random_scalars.len());
 
     let r3 = random_scalars[1].inverse().unwrap();
-    let e_cap = random_scalars[2] * e_value * challenge.scalar;
+    let e_cap = random_scalars[2] + e_value * challenge.scalar;
     let r1_cap = random_scalars[3] - random_scalars[0] * challenge.scalar;
     let r3_cap = random_scalars[4] - r3 * challenge.scalar;
     let mut commitments = Vec::new();

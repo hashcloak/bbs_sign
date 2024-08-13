@@ -4,12 +4,9 @@ use ark_ec::AffineRepr;
 use ark_ff::fields::Field;
 
 use crate::key_gen::PublicKey;
-use crate::proof_gen::proof_challenge_calculate;
-use crate::proof_gen::InitProof;
-use crate::proof_gen::Proof;
+use crate::proof_gen::{proof_challenge_calculate, InitProof, Proof, ProofGenError};
 use crate::utils::core_utilities::calculate_domain;
-use crate::utils::interface_utilities::msg_to_scalars;
-use crate::utils::interface_utilities::create_generators;
+use crate::utils::interface_utilities::{msg_to_scalars, create_generators};
 
 use crate::constants::{P1, BP2, CIPHERSUITE_ID};
 
@@ -17,7 +14,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-verification-proofver
-pub fn proof_verify(pk: PublicKey, proof: Proof, header: &[u8], ph: &[u8], disclosed_messages: &[&[u8]], disclosed_indexes: &[usize]) -> bool {
+pub fn proof_verify(pk: PublicKey, proof: Proof, header: &[u8], ph: &[u8], disclosed_messages: &[&[u8]], disclosed_indexes: &[usize]) -> Result<bool, ProofGenError> {
 
     let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
@@ -28,28 +25,48 @@ pub fn proof_verify(pk: PublicKey, proof: Proof, header: &[u8], ph: &[u8], discl
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreproofverify
-pub fn core_proof_verify(pk: PublicKey, proof: Proof, generators: &[G1], header: &[u8], ph: &[u8], disclosed_messages: &[Fr], disclosed_indexes: &[usize], api_id: &[u8]) -> bool {
+pub(crate) fn core_proof_verify(pk: PublicKey, proof: Proof, generators: &[G1], header: &[u8], ph: &[u8], disclosed_messages: &[Fr], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<bool, ProofGenError> {
 
     let init_res = proof_verify_init(pk.clone(), proof.clone(), generators, header, &disclosed_messages, disclosed_indexes, api_id);
-    let challenge = proof_challenge_calculate(&init_res, disclosed_messages, disclosed_indexes, ph, api_id);
 
-    assert_eq!(challenge.scalar ,proof.challenge.scalar);
-    Bn254::pairing(proof.a_bar, pk.pk).0 * Bn254::pairing(proof.b_bar, -BP2.into_group()).0 == Fq12::ONE
+    if init_res.is_err() {
+        return Err(init_res.unwrap_err());
+    }
+
+    let challenge = proof_challenge_calculate(&init_res.unwrap(), disclosed_messages, disclosed_indexes, ph, api_id);
+
+    if challenge.is_err() {
+        return Err(challenge.unwrap_err());
+    }
+    let challenge = challenge.unwrap();
+
+    if challenge.scalar != proof.challenge.scalar {
+        return Ok(false);
+    }
+
+    Ok(Bn254::pairing(proof.a_bar, pk.pk).0 * Bn254::pairing(proof.b_bar, -BP2.into_group()).0 == Fq12::ONE)
     
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreproofverify
-pub fn proof_verify_init(pk: PublicKey, proof: Proof, generators: &[G1], header: &[u8], disclosed_messages: &[Fr], disclosed_indexes: &[usize], api_id: &[u8]) -> InitProof {
+pub(crate) fn proof_verify_init(pk: PublicKey, proof: Proof, generators: &[G1], header: &[u8], disclosed_messages: &[Fr], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<InitProof, ProofGenError> {
 
     let u = proof.commitments.len();
     let r = disclosed_indexes.len();
     let l = r + u;
     
     for &index in disclosed_indexes {
-        assert!(index < l);
+        if index >= l {
+            return Err(ProofGenError::InvalidDisclosedIndex);
+        }
     }
-    assert!(disclosed_messages.len() == r);
-    assert!(generators.len() == l + 1);
+    if disclosed_messages.len() != r {
+        return Err(ProofGenError::InvalidIndicesAndMessagesLength);
+    }
+
+    if generators.len() != l + 1 {
+        return Err(ProofGenError::InvalidMessageAndGeneratorsLength);
+    }
 
     let full_indexes: HashSet<usize> = HashSet::from_iter(0..l);
     let disclosed_set: HashSet<usize> = HashSet::from_iter(disclosed_indexes.iter().cloned());
@@ -80,8 +97,8 @@ pub fn proof_verify_init(pk: PublicKey, proof: Proof, generators: &[G1], header:
         i = i + 1;
     }
 
-    InitProof{
+    Ok(InitProof{
         points: [proof.a_bar.into(), proof.b_bar.into(), proof.d.into(), t1.into(), t2.into()],
         scalar: domain
-    }
+    })
 }

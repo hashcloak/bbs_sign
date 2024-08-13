@@ -2,6 +2,7 @@ use ark_bn254::{ fr::Fr, g1::G1Affine as G1, G1Projective};
 use ark_ff::fields::Field;
 use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
 use ark_ec::AffineRepr;
+use thiserror::Error;
 
 use crate::key_gen::SecretKey;
 use crate::utils::core_utilities::hash_to_scalar;
@@ -18,13 +19,17 @@ pub struct Signature {
     pub e: Fr,
 }
 
+#[derive(Debug, Error)]
+pub enum SignatureError {
+    #[error("Invalid Message and Generators length: expected generators length to be messages length + 1.")]
+    InvalidMessageAndGeneratorsLength,
+}
+
 impl SecretKey {
     
-    #[allow(unused_variables)]
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-generation-sign
-    pub fn sign(&self, messages: &[&[u8]], header: &[u8]) -> Signature {
-        
-        let pk = self.sk_to_pk();
+    pub fn sign(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature, SignatureError>  {
+
         let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
         let message_scalars = msg_to_scalars(messages, &api_id);
@@ -34,9 +39,11 @@ impl SecretKey {
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coresign
-    pub fn core_sign(&self, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> Signature {
+    pub(crate) fn core_sign(&self, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> Result<Signature, SignatureError>  {
         
-        assert!(messages.len() + 1 == generators.len());
+        if messages.len() + 1 != generators.len() {
+            return Err(SignatureError::InvalidMessageAndGeneratorsLength);
+        }
 
         let public_key = &self.sk_to_pk();
         let domain = calculate_domain(public_key, generators[0], &generators[1..], header, api_id);
@@ -74,6 +81,6 @@ impl SecretKey {
         let sk_plus_e_inverse = (self.sk + e).inverse().unwrap();
         let a: G1 = (b * sk_plus_e_inverse).into();
 
-        Signature { a, e }
+        Ok(Signature { a, e })
     }
 }

@@ -12,7 +12,7 @@ mod tests {
         let mut key_material = [1u8; 32];
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
-        let sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice());
+        let sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice()).unwrap();
         let pk = SecretKey::sk_to_pk(&sk);
 
         (sk, pk)
@@ -44,12 +44,12 @@ mod tests {
 
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
 
-        let signature = sk.sign(&msg_slices, header);
-        assert!(pk.verify(signature, header, &msg_slices));
+        let signature = sk.sign(&msg_slices, header).unwrap();
+        assert!(pk.verify(signature, header, &msg_slices).unwrap());
 
         let disclosed_msgs: Vec<&[u8]> = disclosed_indexes.iter().map(|i| msg_slices[*i]).collect();
 
         let proof = proof_gen(pk.clone(), signature, header, &[], &msg_slices, disclosed_indexes.as_slice());
-        assert!(proof_verify(pk, proof, header, &[], disclosed_msgs.as_slice(), disclosed_indexes.as_slice()));
+        assert!(proof_verify(pk, proof.unwrap(), header, &[], disclosed_msgs.as_slice(), disclosed_indexes.as_slice()).unwrap());
     }
 }

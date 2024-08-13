@@ -11,7 +11,7 @@ mod tests {
         let mut key_material: [u8; 32] = rand::random();
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
-        let sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice());
+        let sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice()).unwrap();
         let pk = SecretKey::sk_to_pk(&sk);
 
         (sk, pk)
@@ -46,8 +46,8 @@ mod tests {
 
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
 
-        let signature = sk.sign(&msg_slices, header);
-        assert!(pk.verify(signature, header, &msg_slices));
+        let signature = sk.sign(&msg_slices, header).unwrap();
+        assert!(pk.verify(signature, header, &msg_slices).unwrap());
     }
 
     #[test]
@@ -62,28 +62,28 @@ mod tests {
         let messages = generate_random_msg(count);
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
 
-        let signature = sk.sign(&msg_slices, header);
+        let signature = sk.sign(&msg_slices, header).unwrap();
 
         // valid signature verification
-        assert!(pk.verify(signature, header, &msg_slices));
+        assert!(pk.verify(signature, header, &msg_slices).unwrap());
         
         // forged signature
         let mut forged_signature = signature.clone();
         forged_signature.a = G1::identity();
-        assert!(!pk.verify(forged_signature, header, &msg_slices));
+        assert!(!pk.verify(forged_signature, header, &msg_slices).unwrap());
 
         // forged header
         let forged_header = b"abc";
-        assert!(!pk.verify(signature, forged_header, &msg_slices));
+        assert!(!pk.verify(signature, forged_header, &msg_slices).unwrap());
 
         // forged public key
         let forged_pk = PublicKey::default();
-        assert!(!forged_pk.verify(signature, header, &msg_slices));
+        assert!(!forged_pk.verify(signature, header, &msg_slices).unwrap());
 
         // forged messages
         let mut forged_messages = msg_slices.clone();
         forged_messages[0] = &[0,1];
-        assert!(!pk.verify(signature, header, &forged_messages));
+        assert!(!pk.verify(signature, header, &forged_messages).unwrap());
 
     }
 }

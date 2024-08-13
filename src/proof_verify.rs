@@ -14,6 +14,7 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-verification-proofver
+// disclosed_messages and disclosed_indexes should be in same(increasing) order otherwise the proof will fail
 pub fn proof_verify(pk: PublicKey, proof: Proof, header: &[u8], ph: &[u8], disclosed_messages: &[&[u8]], disclosed_indexes: &[usize]) -> Result<bool, ProofGenError> {
 
     let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();

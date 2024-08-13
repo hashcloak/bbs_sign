@@ -3,7 +3,7 @@ use ark_ec::{ pairing::Pairing, AffineRepr};
 use ark_ff::fields::Field;
 
 use crate::key_gen::PublicKey;
-use crate::sign::Signature;
+use crate::sign::{SignatureError, Signature};
 use crate::utils::core_utilities::calculate_domain;
 use crate::constants::{P1, BP2, CIPHERSUITE_ID};
 use crate::utils::interface_utilities::msg_to_scalars;
@@ -12,7 +12,7 @@ use crate::utils::interface_utilities::create_generators;
 impl PublicKey {
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-verification-veri
-    pub fn verify(&self, signature: Signature, header: &[u8], messages: &[&[u8]]) -> bool {
+    pub fn verify(&self, signature: Signature, header: &[u8], messages: &[&[u8]]) -> Result<bool, SignatureError> {
         
         let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
         let message_scalars = msg_to_scalars(messages, &api_id);
@@ -22,9 +22,11 @@ impl PublicKey {
     }
     
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreverify
-    pub fn core_verify(&self, signature: Signature, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> bool {
+    pub(crate) fn core_verify(&self, signature: Signature, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> Result<bool, SignatureError> {
         
-        assert!(messages.len() + 1 == generators.len());
+        if messages.len() + 1 != generators.len() {
+            return Err(SignatureError::InvalidMessageAndGeneratorsLength);
+        }
 
         let domain = calculate_domain(self, generators[0], &generators[1..], header, api_id);
 
@@ -35,6 +37,6 @@ impl PublicKey {
             b = b + generators[i] * messages[i - 1];
         }
 
-        Bn254::pairing(signature.a, self.pk + BP2.into_group() * signature.e).0 * Bn254::pairing(b, -BP2.into_group()).0 == Fq12::ONE
+        Ok(Bn254::pairing(signature.a, self.pk + BP2.into_group() * signature.e).0 * Bn254::pairing(b, -BP2.into_group()).0 == Fq12::ONE)
     }
 }

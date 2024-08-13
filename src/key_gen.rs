@@ -3,12 +3,13 @@ use ark_ec::{ CurveGroup, AffineRepr };
 use zeroize::{Zeroize, ZeroizeOnDrop};
 use digest::generic_array::{GenericArray, typenum::U48};
 use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
+use thiserror::Error;
 
 use crate::utils::utilities_helper::FromOkm;
 use crate::utils::core_utilities::hash_to_scalar;
 
 // Public Key
-#[derive(Debug, Default,CanonicalDeserialize, CanonicalSerialize)]
+#[derive(Debug, Default,CanonicalDeserialize, CanonicalSerialize, Clone)]
 pub struct PublicKey{
     pub pk: G2
 }
@@ -19,13 +20,29 @@ pub struct SecretKey{
     pub sk: Fr
 }
 
+#[derive(Debug, Error)]
+pub enum KeyGenError {
+    #[error("Invalid key material length: expected at least 32 bytes.")]
+    InvalidKeyMaterialLength,
+    #[error("Invalid key info length: maximum allowed is 65535 bytes.")]
+    InvalidKeyInfoLength,
+    #[error("Generated secret key is invalid (zero scalar).")]
+    InvalidSecretKey,
+    
+}
+
 impl SecretKey {
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-secret-key
-    pub fn key_gen(key_material: &mut [u8], key_info: &[u8],key_dst: &[u8]) -> Self {
+    pub fn key_gen(key_material: &mut [u8], key_info: &[u8],key_dst: &[u8]) -> Result<Self, KeyGenError> {
 
-        assert!(key_material.len() >= 32);
-        assert!(key_info.len() <= 65535);
+        if key_material.len() < 32 {
+            return Err(KeyGenError::InvalidKeyMaterialLength);
+        }
+
+        if key_info.len() > 65535 {
+            return Err(KeyGenError::InvalidKeyInfoLength);
+        }
 
         let mut derive_input = Vec::<u8>::with_capacity(key_material.len() + 2 + key_info.len());
 
@@ -39,11 +56,13 @@ impl SecretKey {
         // zeroize key_material after use
         key_material.zeroize();
 
-        assert!(sk != Fr::from(0));
-
-        SecretKey{
-            sk
+        if sk == Fr::from(0) {
+            return Err(KeyGenError::InvalidSecretKey);
         }
+
+        Ok(SecretKey{
+            sk
+        })
     }
 
     pub fn sk_to_pk(&self) -> PublicKey {
@@ -80,12 +99,13 @@ mod tests {
 
     #[test]
     fn test_key_gen() {
-        let mut key_material = [0u8; 32];
+        let mut key_material1 = [1u8; 32];
+        let mut key_material2 = [1u8; 32];
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
         // key_info and key_dst are optional
-        let sk1 = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice());
-        let sk2 = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice());
+        let sk1 = SecretKey::key_gen(&mut key_material1, &[], key_dst.as_slice()).unwrap();
+        let sk2 = SecretKey::key_gen(&mut key_material2, &[], key_dst.as_slice()).unwrap();
         let pk1 = SecretKey::sk_to_pk(&sk1);
         let pk2 = SecretKey::sk_to_pk(&sk2);
 
@@ -93,7 +113,8 @@ mod tests {
         assert!(sk1.sk != Fr::from(0));
 
         // check key_material is zeroid after use
-        assert!(key_material == [0u8; 32]);
+        assert!(key_material1 == [0u8; 32]);
+        assert!(key_material2 == [0u8; 32]);
 
         // check pk is generated deterministically
         assert_eq!(pk1.pk, pk2.pk);
@@ -105,7 +126,7 @@ mod tests {
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
         // key_info and key_dst are optional
-        let mut sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice());
+        let mut sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice()).unwrap();
         let _ = SecretKey::sk_to_pk(&sk);
         
         // zeroize the secret key after generating public key
@@ -115,4 +136,25 @@ mod tests {
         assert!(sk.sk == Fr::from(0));
         assert!(key_material == [0u8; 32]);
     }
+
+    #[test]
+    fn test_invalid_key_gen() {
+
+        // key_material length should be at least 32
+        let mut key_material = [1u8; 30];
+        let key_dst = b"BBS-SIG-KEYGEN-SALT-";
+
+        // key_info and key_dst are optional
+        let sk1 = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice());
+        assert!(sk1.is_err());
+
+
+        let mut key_material = [1u8; 32];
+        // key_info should be at most 65535
+        let key_info_arr = [1u8; 65536];
+
+        let sk1 = SecretKey::key_gen(&mut key_material, key_info_arr.as_slice(), key_dst.as_slice());
+        assert!(sk1.is_err());
+    }
+
 }

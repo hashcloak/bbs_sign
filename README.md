@@ -68,3 +68,17 @@ fn main() {
     assert!(proof_verify(pk, proof, &[], &[], disclosed_msgs.as_slice(), disclosed_indices.as_slice()).unwrap());
 }
 ```
+## Benchmarking with Criterion
+
+benchmarking for the BBS+ signature scheme is done using [Criterion.rs](https://github.com/bheisler/criterion.rs), a powerful framework for benchmarking Rust code. The benchmarks cover the key generation, message signing, and signature verification processes.
+
+To run all the benchmarks:
+```rust
+cargo bench
+```
+You can also run specific benchmarks using `--bench` flag.
+```rust
+cargo bench --bench <benchmark_target>
+```
+The following benchmark targets are availabe: `keygen`, `sign`, `verify`(e.g., `cargo bench --bench keygen`).
+The sign and verify benchmark targets contains two benchmark function, one on single message of varying length and another on variable number of messages each of length 32bytes.

@@ -33,8 +33,11 @@ mod tests {
         random_vecs
     }
 
+    // happy path
+    #[test_case(0, vec![], b"")]
     #[test_case(0, vec![], b"abc")]
     #[test_case(1, vec![0], b"abc")]
+    #[test_case(1, vec![], b"abc")]
     #[test_case(10, vec![0,1,2], b"")]
     #[test_case(10, vec![0,4,7,9], b"def")]
     #[test_case(5, vec![0,4], b"defghjsdjdbcjbejd")]

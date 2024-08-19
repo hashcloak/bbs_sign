@@ -12,7 +12,7 @@ pub fn sign_benchmark_single_msg(c: &mut Criterion) {
     let mut group = c.benchmark_group("sign_single_msg");
 
     // message size
-    for size in [128, 256, 512, 1024, 2048, 4096].iter() {
+    for size in [32, 64, 128, 256, 512, 1024, 2048].iter() {
 
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {

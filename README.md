@@ -76,9 +76,19 @@ To run all the benchmarks:
 ```rust
 cargo bench
 ```
-You can also run specific benchmarks using `--bench` flag.
+Running entire benchmark will take some significant time! You can also run specific benchmarks using `--bench` flag.
 ```rust
 cargo bench --bench <benchmark_target>
 ```
-The following benchmark targets are availabe: `keygen`, `sign`, `verify`(e.g., `cargo bench --bench keygen`).
-The sign and verify benchmark targets contains two benchmark function, one on single message of varying length and another on variable number of messages each of length 32bytes.
+The following benchmark targets are availabe: `keygen`, `sign`, `verify`, `proof_gen` and `proof_verify`(e.g., `cargo bench --bench keygen`).
+
+The benchmarks evaluate the following different scenarios:
+- `keygen`: 
+    - varying length of `key_material`
+- `sign` and `verify`: 
+    - single message with varying message lengths 
+    - multiple messages each of a fixed length(32 bytes)
+- `proof_gen` and `proof_verify`: 
+    - single message with varying message lengths with no disclosed indices
+    - multiple messages each of a fixed length(32 bytes) with no disclosed indices 
+    - multiple messages each of a fixed length(32 bytes) with varying disclosed indices

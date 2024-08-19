@@ -27,26 +27,27 @@ ark-serialize = "0.4.2"
 test-case = "3.3.1"
 once_cell = "1.10.0"
 thiserror = "1.0.63"
+ark-bls12-381 = "0.4.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
 
-[[bench]]
-name = "keygen"
-harness = false
+# [[bench]]
+# name = "keygen"
+# harness = false
 
-[[bench]]
-name = "sign"
-harness = false
+# [[bench]]
+# name = "sign"
+# harness = false
 
-[[bench]]
-name = "verify"
-harness = false
+# [[bench]]
+# name = "verify"
+# harness = false
 
-[[bench]]
-name = "proof_gen"
-harness = false
+# [[bench]]
+# name = "proof_gen"
+# harness = false
 
-[[bench]]
-name = "proof_verify"
-harness = false
+# [[bench]]
+# name = "proof_verify"
+# harness = false

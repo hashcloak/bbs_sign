@@ -1,8 +1,11 @@
-use ark_bn254::{G1Affine as G1, Fr};
+use ark_bn254::G1Affine as G1;
+use ark_ff::Field;
 use bn254_hash2curve::hash2g1::HashToG1;
+use ark_ec::pairing::Pairing;
 
 use super::utilities_helper::expand_message;
 use super::core_utilities::hash_to_scalar;
+use crate::utils::utilities_helper;
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.1.1
 pub fn create_generators(count: usize, api_id: &[u8]) -> Vec<G1> {
@@ -32,7 +35,11 @@ pub fn create_generators(count: usize, api_id: &[u8]) -> Vec<G1> {
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-messages-to-scalars
-pub fn msg_to_scalars(messages: &[&[u8]] , api_id: &[u8]) -> Vec<Fr> {
+pub fn msg_to_scalars<E, F, const L: usize>(messages: &[&[u8]] , api_id: &[u8]) -> Vec<F> 
+where 
+    E: Pairing,
+    F: Field + utilities_helper::FromOkm<L, F>, 
+{
     let mut msg_scalars = Vec::new();
     for &msg in messages {
         msg_scalars.push(hash_to_scalar(msg, api_id));

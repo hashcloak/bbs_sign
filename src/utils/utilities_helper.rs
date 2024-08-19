@@ -1,18 +1,20 @@
 use std::usize;
-use ark_bn254::{fr::Fr, fq::Fq};
+use ark_bn254::fr::Fr;
+use ark_ff::Field;
 use num_bigint::BigUint;
 use digest::generic_array::GenericArray;
 use num_integer::Integer;
 use digest::generic_array::typenum::U32;
 pub use sha2::{Sha256, digest::Digest};
 use subtle::{Choice, ConditionallySelectable};
+use ark_bls12_381::Fr as FrBls12_381;
 
-pub trait FromOkm<const L: usize>: Sized {
+pub trait FromOkm<const L: usize, F: Field>: Sized {
     /// Convert a byte sequence into a scalar
     fn from_okm(data: &[u8; L]) -> Self;
 }
 
-impl<const L: usize> FromOkm<L> for Fr {
+impl<const L: usize, F: Field> FromOkm<L, F> for Fr {
     fn from_okm(data: &[u8; L]) -> Self {
         let p = BigUint::from_bytes_be(
             &hex::decode("30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001")
@@ -26,17 +28,18 @@ impl<const L: usize> FromOkm<L> for Fr {
     }
 }
 
-impl<const L: usize> FromOkm<L> for Fq {
+//TODO: Check
+impl<const L: usize, F: Field> FromOkm<L, F> for FrBls12_381 {
     fn from_okm(data: &[u8; L]) -> Self {
         let p = BigUint::from_bytes_be(
-            &hex::decode("30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47")
+            &hex::decode("73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFF00000001")
                 .unwrap(),
         );
 
         let mut x = BigUint::from_bytes_be(&data[..]);
             x = x.mod_floor(&p);
 
-            Fq::from(x)
+            FrBls12_381::from(x)
     }
 }
 

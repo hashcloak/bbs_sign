@@ -1,5 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
 use bbs_plus::key_gen::SecretKey;
+use ark_bn254::Bn254;
+use ark_bn254::Fr;
 use rand::Rng;
 
 
@@ -18,7 +20,7 @@ pub fn keygen_benchmark(c: &mut Criterion) {
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
         let key_info: Vec<u8> = (0..size).map(|_| rng.gen::<u8>()).collect();
 
-        b.iter(|| SecretKey::key_gen(black_box(&mut key_material), black_box(&key_info), black_box(key_dst)));
+        b.iter(|| SecretKey::<Fr>::key_gen::<Bn254>(black_box(&mut key_material), black_box(&key_info), black_box(key_dst)));
 
         });
     }

@@ -3,6 +3,7 @@ use ark_ff::fields::Field;
 use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
 use ark_ec::AffineRepr;
 use thiserror::Error;
+use elliptic_curve::ops::Mul;
 
 use crate::key_gen::SecretKey;
 use crate::utils::core_utilities::hash_to_scalar;
@@ -11,12 +12,14 @@ use crate::constants::P1;
 use crate::constants::CIPHERSUITE_ID;
 use crate::utils::interface_utilities::msg_to_scalars;
 use crate::utils::interface_utilities::create_generators;
+use ark_ec::pairing::Pairing;
+use crate::utils::utilities_helper;
 
 // bbs signature
 #[derive(Debug, Default, CanonicalSerialize, CanonicalDeserialize, Clone, Copy)]
-pub struct Signature {
-    pub a: G1,
-    pub e: Fr,
+pub struct Signature<E: Pairing, F: Field> {
+    pub a: E::G1,
+    pub e: F,
 }
 
 #[derive(Debug, Error)]
@@ -25,28 +28,31 @@ pub enum SignatureError {
     InvalidMessageAndGeneratorsLength,
 }
 
-impl SecretKey {
+impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
     
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-generation-sign
-    pub fn sign(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature, SignatureError>  {
+    pub fn sign<E: Pairing>(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature<E, F>, SignatureError>  {
 
         let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
-        let message_scalars = msg_to_scalars(messages, &api_id);
+        let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
         let generators = create_generators(messages.len() + 1, &api_id);
 
-        self.core_sign(generators.as_slice(), header, message_scalars.as_slice(), &api_id)
+        self.core_sign::<E,F>(generators.as_slice(), header, message_scalars.as_slice(), &api_id)
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coresign
-    pub(crate) fn core_sign(&self, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> Result<Signature, SignatureError>  {
+    pub(crate) fn core_sign<E: Pairing>(&self, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<Signature<E, F>, SignatureError>  
+    
+    where <E as Pairing>::G2: Mul<F>, <E as Pairing>::G2: From<<<E as Pairing>::G2 as Mul<F>>::Output>
+    {
         
         if messages.len() + 1 != generators.len() {
             return Err(SignatureError::InvalidMessageAndGeneratorsLength);
         }
 
         let public_key = &self.sk_to_pk();
-        let domain = calculate_domain(public_key, generators[0], &generators[1..], header, api_id);
+        let domain = calculate_domain::<E, F, 48>(public_key, generators[0], &generators[1..], header, api_id);
 
         let hash_to_scalar_dst = [api_id, b"H2S_"].concat();
 

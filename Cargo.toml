@@ -32,9 +32,9 @@ ark-bls12-381 = "0.4.0"
 [dev-dependencies]
 criterion = "0.5.1"
 
-# [[bench]]
-# name = "keygen"
-# harness = false
+[[bench]]
+name = "keygen"
+harness = false
 
 # [[bench]]
 # name = "sign"

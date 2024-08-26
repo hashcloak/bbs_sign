@@ -13,9 +13,20 @@ use crate::utils::core_utilities::hash_to_scalar;
 use crate::utils::utilities_helper;
 
 // Public Key
-#[derive(Debug, Default,CanonicalDeserialize, CanonicalSerialize, Clone)]
+#[derive(Debug,CanonicalDeserialize, CanonicalSerialize, Clone)]
 pub struct PublicKey<E: Pairing>{
     pub pk: E::G2
+}
+
+impl<E: Pairing> Default for PublicKey<E> 
+where
+    E::G2: Default,
+{
+    fn default() -> Self {
+        PublicKey {
+            pk: E::G2::default(),
+        }
+    }
 }
 
 // Secret Key

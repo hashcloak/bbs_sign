@@ -1,13 +1,16 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
 use rand::Rng;
 use bbs_plus::key_gen::SecretKey;
+use ark_bn254::{Fr, Bn254};
+use bbs_plus::utils::interface_utilities::HashToCurveBn254;
+use bbs_plus::constants::Bn254Const;
 
 // benchmarking signing on single message with varying message length
 pub fn sign_benchmark_single_msg(c: &mut Criterion) {
 
     let mut key_material: [u8;32] = [1;32];
     let key_dst = b"BBS-SIG-KEYGEN-SALT-";
-    let sk = SecretKey::key_gen(&mut key_material, &[], key_dst).unwrap();
+    let sk = SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst).unwrap();
 
     let mut group = c.benchmark_group("sign_single_msg");
 
@@ -20,7 +23,7 @@ pub fn sign_benchmark_single_msg(c: &mut Criterion) {
         let mut rng = rand::thread_rng();
         let msg: Vec<u8> = (0..size).map(|_| rng.gen::<u8>()).collect(); // generating random message
 
-        b.iter(|| sk.sign(black_box(&[&msg]), &[]));
+        b.iter(|| sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(black_box(&[&msg]), &[]));
 
         });
     }
@@ -33,7 +36,7 @@ pub fn sign_benchmark_multiple_msgs(c: &mut Criterion) {
 
     let mut key_material: [u8;32] = [1;32];
     let key_dst = b"BBS-SIG-KEYGEN-SALT-";
-    let sk = SecretKey::key_gen(&mut key_material, &[], key_dst).unwrap();
+    let sk = SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst).unwrap();
 
     let mut group = c.benchmark_group("sign_multiple_msgs");
 
@@ -54,7 +57,7 @@ pub fn sign_benchmark_multiple_msgs(c: &mut Criterion) {
         let msg_slices: Vec<&[u8]> = random_msgs_vecs.iter().map(|v| v.as_slice()).collect();
         let msgs: &[&[u8]] = &msg_slices;
 
-        b.iter(|| sk.sign(black_box(msgs), &[]));
+        b.iter(|| sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(black_box(msgs), &[]));
 
         });
     }

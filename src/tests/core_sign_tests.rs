@@ -1,18 +1,19 @@
 #[cfg(test)]
 mod tests {
 
+    use crate::constants::Bn254Const;
     use crate::key_gen::{PublicKey, SecretKey};
-    use crate::utils::interface_utilities::create_generators;
-    use ark_bn254::{Fr, G1Affine as G1};
+    use crate::utils::interface_utilities::{create_generators, HashToCurveBn254};
+    use ark_bn254::{Bn254, Fr, G1Affine as G1};
     use rand::Rng;
     use test_case::test_case;
 
-    fn generate_key() -> (SecretKey, PublicKey){
+    fn generate_key() -> (SecretKey<Fr>, PublicKey<Bn254>){
 
         let mut key_material = [1u8; 32];
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
-        let sk = SecretKey::key_gen(&mut key_material, &[], key_dst.as_slice()).unwrap();
+        let sk = SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice()).unwrap();
         let pk = SecretKey::sk_to_pk(&sk);
 
         (sk, pk)
@@ -46,10 +47,10 @@ mod tests {
 
         // random messages: Vector of Fr
         let messages = generate_random_msg(count);
-        let generators = create_generators(count+1, api_id);
+        let generators = create_generators::<Bn254, HashToCurveBn254>(count+1, api_id);
 
-        let signature = sk.core_sign(generators.as_slice(), header, &messages, api_id).unwrap();
-        assert!(pk.core_verify(signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        let signature = sk.core_sign::<Bn254, Bn254Const>(generators.as_slice(), header, &messages, api_id).unwrap();
+        assert!(pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(signature, generators.as_slice(), header, &messages, api_id).unwrap());
     }
 
     #[test]
@@ -63,34 +64,34 @@ mod tests {
 
         // random messages: Vector of Fr
         let messages = generate_random_msg(count);
-        let generators = create_generators(count+1, api_id);
+        let generators = create_generators::<Bn254, HashToCurveBn254>(count+1, api_id);
 
-        let signature = sk.core_sign(generators.as_slice(), header, &messages, api_id).unwrap();
+        let signature = sk.core_sign::<Bn254, Bn254Const>(generators.as_slice(), header, &messages, api_id).unwrap();
 
         // valid signature verification
-        assert!(pk.core_verify(signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        assert!(pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(signature, generators.as_slice(), header, &messages, api_id).unwrap());
         
         // forged signature
         let mut forged_signature = signature.clone();
-        forged_signature.a = G1::identity();
-        assert!(!pk.core_verify(forged_signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        forged_signature.a = G1::identity().into();
+        assert!(!pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(forged_signature, generators.as_slice(), header, &messages, api_id).unwrap());
 
         // forged api_id
         let forged_api_id = b"abc";
-        assert!(!pk.core_verify(signature, generators.as_slice(), header, &messages, forged_api_id).unwrap());
+        assert!(!pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(signature, generators.as_slice(), header, &messages, forged_api_id).unwrap());
 
         // forged header
         let forged_header = b"abc";
-        assert!(!pk.core_verify(signature, generators.as_slice(), forged_header, &messages, api_id).unwrap());
+        assert!(!pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(signature, generators.as_slice(), forged_header, &messages, api_id).unwrap());
 
         // forged public key
-        let forged_pk = PublicKey::default();
-        assert!(!forged_pk.core_verify(signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        let forged_pk: PublicKey<Bn254> = PublicKey::<Bn254>::default();
+        assert!(!forged_pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(signature, generators.as_slice(), header, &messages, api_id).unwrap());
 
         // forged messages
         let mut forged_messages = messages.clone();
         forged_messages[0] = Fr::from(0);
-        assert!(!pk.core_verify(signature, generators.as_slice(), header, &forged_messages, api_id).unwrap());
+        assert!(!pk.core_verify::<Fr, Bn254Const, HashToCurveBn254>(signature, generators.as_slice(), header, &forged_messages, api_id).unwrap());
 
     }
 }

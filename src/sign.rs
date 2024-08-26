@@ -1,19 +1,18 @@
-use ark_bn254::{ fr::Fr, g1::G1Affine as G1, G1Projective};
 use ark_ff::fields::Field;
 use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
-use ark_ec::AffineRepr;
 use thiserror::Error;
 use elliptic_curve::ops::Mul;
 
 use crate::key_gen::SecretKey;
 use crate::utils::core_utilities::hash_to_scalar;
 use crate::utils::core_utilities::calculate_domain;
-use crate::constants::P1;
+use crate::constants::Constants;
 use crate::constants::CIPHERSUITE_ID;
 use crate::utils::interface_utilities::msg_to_scalars;
 use crate::utils::interface_utilities::create_generators;
 use ark_ec::pairing::Pairing;
 use crate::utils::utilities_helper;
+use crate::utils::interface_utilities::HashToG1;
 
 // bbs signature
 #[derive(Debug, Default, CanonicalSerialize, CanonicalDeserialize, Clone, Copy)]
@@ -31,20 +30,33 @@ pub enum SignatureError {
 impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
     
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-generation-sign
-    pub fn sign<E: Pairing>(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature<E, F>, SignatureError>  {
+    pub fn sign<E, C, H>(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature<E, F>, SignatureError>  
+    
+    where
+    E: Pairing,
+    C: Constants<E>,
+    H: HashToG1<E>,
+    E::G2: Mul<F, Output = E::G2>,
+    E::G1: Mul<F, Output = E::G1>,
+
+    {
 
         let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
         let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
-        let generators = create_generators(messages.len() + 1, &api_id);
+        let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
 
-        self.core_sign::<E,F>(generators.as_slice(), header, message_scalars.as_slice(), &api_id)
+        self.core_sign::<E, C>(generators.as_slice(), header, message_scalars.as_slice(), &api_id)
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coresign
-    pub(crate) fn core_sign<E: Pairing>(&self, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<Signature<E, F>, SignatureError>  
+    pub(crate) fn core_sign<E: Pairing, C: Constants<E>>(&self, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<Signature<E, F>, SignatureError>  
     
-    where <E as Pairing>::G2: Mul<F>, <E as Pairing>::G2: From<<<E as Pairing>::G2 as Mul<F>>::Output>
+    where 
+    E: Pairing,
+    E::G2: Mul<F, Output = E::G2>,
+    E::G1: Mul<F, Output = E::G1>,
+    
     {
         
         if messages.len() + 1 != generators.len() {
@@ -68,7 +80,7 @@ impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
         for msg in messages {
 
             let mut msg_serialize_bytes = Vec::new();
-            let _ = msg.0.serialize_compressed(&mut msg_serialize_bytes);
+            let _ = msg.serialize_compressed(&mut msg_serialize_bytes);
             serialize_bytes.extend_from_slice(msg_serialize_bytes.as_slice());
         }
 
@@ -76,7 +88,7 @@ impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
 
         let e = hash_to_scalar(serialize_bytes.as_slice(), hash_to_scalar_dst.as_slice());
 
-        let mut b: G1Projective = P1.into_group();
+        let mut b: E::G1 = C::bp1();
 
         b = b + generators[0] * domain;
 
@@ -84,8 +96,9 @@ impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
             b = b + generators[i] * messages[i - 1];
         }
 
-        let sk_plus_e_inverse = (self.sk + e).inverse().unwrap();
-        let a: G1 = (b * sk_plus_e_inverse).into();
+        let sk_plus_e: F = self.sk + e;
+        let sk_plus_e_inverse:  F = sk_plus_e.inverse().unwrap();
+        let a: E::G1 = b * sk_plus_e_inverse;
 
         Ok(Signature { a, e })
     }

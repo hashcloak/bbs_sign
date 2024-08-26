@@ -36,13 +36,13 @@ criterion = "0.5.1"
 name = "keygen"
 harness = false
 
-# [[bench]]
-# name = "sign"
-# harness = false
+[[bench]]
+name = "sign"
+harness = false
 
-# [[bench]]
-# name = "verify"
-# harness = false
+[[bench]]
+name = "verify"
+harness = false
 
 # [[bench]]
 # name = "proof_gen"

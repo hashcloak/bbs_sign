@@ -32,10 +32,12 @@ impl <E: Pairing<G1 = Projective<ark_bn254::g1::Config>, G2 = Projective<ark_bn2
         G2Bn254::generator().into()
     }
 
+    //TODO: change according to draft
     fn P1() -> E::G1 {
         G1Bn254::generator().into()
     }
 
+    //TODO: change according to draft
     fn P2() -> E::G2 {
         G2Bn254::generator().into()
     }
@@ -50,10 +52,12 @@ impl <E: Pairing<G1 = Projective<ark_bls12_381::g1::Config>, G2 = Projective<ark
         G2Bls12_381::generator().into()
     }
 
+    //TODO: change according to draft
     fn P1() -> E::G1 {
         G1Bls12_381::generator().into()
     }
 
+    //TODO: change according to draft
     fn P2() -> E::G2 {
         G2Bls12_381::generator().into()
     }

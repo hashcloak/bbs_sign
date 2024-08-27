@@ -1,14 +1,18 @@
-use ark_ff::Field;
+use ark_ff::{Field, PrimeField};
 use bn254_hash2curve::hash2g1::HashToG1;
 use ark_ec::{
     pairing::Pairing,
     short_weierstrass::Projective
 };
 use ark_bls12_381::{
-    G1Affine as G1Bls12_381,
-    g1::Config as BlsConfig
+    g1::Config as BlsConfig, Fq, G1Affine as G1Bls12_381
 };
 use ark_bn254::g1::Config as BnConfig;
+use bls12_381::{
+    hash_to_curve::{ExpandMsgXmd, HashToCurve},
+    G1Affine, G1Projective,
+};
+use sha2::Sha256;
 
 use crate::utils::{
     utilities_helper::{expand_message, FromOkm},
@@ -31,10 +35,15 @@ impl <E: Pairing<G1 = Projective<BnConfig>>>HashToG1<E> for HashToG1Bn254 {
 
 impl <E: Pairing<G1 = Projective<BlsConfig>>>HashToG1<E> for HashToG1Bls12381 {
 
-    fn hash_to_g1(_message: &[u8], _dst: &[u8]) -> E::G1 {
+    fn hash_to_g1(message: &[u8], dst: &[u8]) -> E::G1 {
 
-        //TODO: Implement this
-        G1Bls12_381::identity().into()
+        // https://github.com/zkcrypto/bls12_381/blob/main/tests/hash_to_curve_g1.rs#L158
+        let g = <G1Projective as HashToCurve<ExpandMsgXmd<Sha256>>>::hash_to_curve([message],dst,);
+        
+        let aff = G1Affine::from(g);
+        let g_uncompressed = aff.to_uncompressed();
+
+        G1Bls12_381::new(Fq::from_be_bytes_mod_order(&g_uncompressed[0..48]), Fq::from_be_bytes_mod_order(&g_uncompressed[48..])).into()
     }
 }
 

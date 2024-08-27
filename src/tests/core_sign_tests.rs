@@ -1,13 +1,15 @@
 #[cfg(test)]
 mod tests {
-
-    use crate::constants::Bn254Const;
-    use crate::key_gen::{PublicKey, SecretKey};
-    use crate::utils::interface_utilities::{create_generators, HashToG1Bn254};
     use ark_bn254::{Bn254, Fr, G1Affine as G1};
     use rand::Rng;
     use test_case::test_case;
 
+    use crate::{
+        constants::Bn254Const,
+        key_gen::{PublicKey, SecretKey},
+        utils::interface_utilities::{create_generators, HashToG1Bn254},
+    };
+    
     fn generate_key() -> (SecretKey<Fr>, PublicKey<Bn254>){
 
         let mut key_material = [1u8; 32];

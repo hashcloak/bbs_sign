@@ -44,10 +44,10 @@ harness = false
 name = "verify"
 harness = false
 
-# [[bench]]
-# name = "proof_gen"
-# harness = false
+[[bench]]
+name = "proof_gen"
+harness = false
 
-# [[bench]]
-# name = "proof_verify"
-# harness = false
+[[bench]]
+name = "proof_verify"
+harness = false

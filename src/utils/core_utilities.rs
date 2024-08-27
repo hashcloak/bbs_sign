@@ -1,14 +1,17 @@
-use std::usize;
 use ark_ec::pairing::Pairing;
 use ark_ff::Field;
 use ark_serialize::CanonicalSerialize;
 
-use crate::utils::utilities_helper;
-use crate::utils::utilities_helper::expand_message;
-use crate::key_gen::PublicKey;
+use crate::{
+    utils::utilities_helper::{ expand_message, FromOkm},
+    key_gen::PublicKey
+};
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-hash-to-scalar
-pub fn hash_to_scalar<const L: usize, F: Field + utilities_helper::FromOkm<L, F>>(msg: &[u8], dst: &[u8]) -> F {
+pub fn hash_to_scalar<const L: usize, F>(msg: &[u8], dst: &[u8]) -> F 
+where 
+    F: Field + FromOkm<L, F>,
+{
 
     // expand_len aka len_in_bytes = 48: Must be defined to be at least ceil((ceil(log2(r))+k)/8), where log2(r) and k are defined by each ciphersuite 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-additional-parameters
@@ -20,11 +23,10 @@ pub fn hash_to_scalar<const L: usize, F: Field + utilities_helper::FromOkm<L, F>
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-domain-calculation
 pub fn calculate_domain<E, F, const L: usize> (pk: &PublicKey<E>, q_1: E::G1, h_points: &[E::G1], header: &[u8], api_id: &[u8]) -> F 
-
 where 
     E: Pairing,
-    F: Field + utilities_helper::FromOkm<L, F>,
-    {
+    F: Field + FromOkm<L, F>,
+{
     
     let l = h_points.len();
     let mut dom_octs = Vec::new();
@@ -63,7 +65,10 @@ fn get_random(len: usize) -> Vec<u8> {
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-random-scalars
-pub fn calculate_random_scalars<const L: usize, F: Field + utilities_helper::FromOkm<L, F>>(count: usize) -> Vec<F> {
+pub fn calculate_random_scalars<const L: usize, F>(count: usize) -> Vec<F> 
+where 
+    F: Field + FromOkm<L, F>
+{
     let mut result = Vec::with_capacity(count);
 
     for _ in 0..count {

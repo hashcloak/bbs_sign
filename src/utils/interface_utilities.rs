@@ -1,27 +1,35 @@
 use ark_ff::Field;
 use bn254_hash2curve::hash2g1::HashToG1;
-use ark_ec::pairing::Pairing;
+use ark_ec::{
+    pairing::Pairing,
+    short_weierstrass::Projective
+};
+use ark_bls12_381::{
+    G1Affine as G1Bls12_381,
+    g1::Config as BlsConfig
+};
+use ark_bn254::g1::Config as BnConfig;
 
-use super::utilities_helper::expand_message;
-use super::core_utilities::hash_to_scalar;
-use crate::utils::utilities_helper;
-use ark_bls12_381::G1Affine as G1Bls12_381;
+use crate::utils::{
+    utilities_helper::{expand_message, FromOkm},
+    core_utilities::hash_to_scalar
+};
 
 pub trait HashToG1<E: Pairing> {
     fn hash_to_g1(msg: &[u8], dst: &[u8]) -> E::G1;
 }
 
-pub struct HashToCurveBn254;
-pub struct HashToCurveBls12381;
+pub struct HashToG1Bn254;
+pub struct HashToG1Bls12381;
 
-impl <E: Pairing<G1 = ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config>>>HashToG1<E> for HashToCurveBn254 {
+impl <E: Pairing<G1 = Projective<BnConfig>>>HashToG1<E> for HashToG1Bn254 {
 
     fn hash_to_g1(message: &[u8], dst: &[u8]) -> E::G1 {
         HashToG1(message, dst).into()
     }
 }
 
-impl <E: Pairing<G1 = ark_ec::short_weierstrass::Projective<ark_bls12_381::g1::Config>>>HashToG1<E> for HashToCurveBls12381 {
+impl <E: Pairing<G1 = Projective<BlsConfig>>>HashToG1<E> for HashToG1Bls12381 {
 
     fn hash_to_g1(_message: &[u8], _dst: &[u8]) -> E::G1 {
 
@@ -31,7 +39,11 @@ impl <E: Pairing<G1 = ark_ec::short_weierstrass::Projective<ark_bls12_381::g1::C
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-4.1.1
-pub fn create_generators<E: Pairing, H: HashToG1<E>>(count: usize, api_id: &[u8]) -> Vec<E::G1> {
+pub fn create_generators<E, H>(count: usize, api_id: &[u8]) -> Vec<E::G1> 
+where 
+    E: Pairing,
+    H: HashToG1<E>
+{
 
     let seed_dst = [api_id, b"SIG_GENERATOR_SEED_"].concat();
     let generator_dst = [api_id, b"SIG_GENERATOR_DST_"].concat();
@@ -61,7 +73,7 @@ pub fn create_generators<E: Pairing, H: HashToG1<E>>(count: usize, api_id: &[u8]
 pub fn msg_to_scalars<E, F, const L: usize>(messages: &[&[u8]] , api_id: &[u8]) -> Vec<F> 
 where 
     E: Pairing,
-    F: Field + utilities_helper::FromOkm<L, F>, 
+    F: Field + FromOkm<L, F>, 
 {
     let mut msg_scalars = Vec::new();
     for &msg in messages {

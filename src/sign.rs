@@ -1,18 +1,28 @@
 use ark_ff::fields::Field;
-use ark_serialize::{CanonicalSerialize, CanonicalDeserialize};
+use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
 use thiserror::Error;
 use elliptic_curve::ops::Mul;
-
-use crate::key_gen::SecretKey;
-use crate::utils::core_utilities::hash_to_scalar;
-use crate::utils::core_utilities::calculate_domain;
-use crate::constants::Constants;
-use crate::constants::CIPHERSUITE_ID;
-use crate::utils::interface_utilities::msg_to_scalars;
-use crate::utils::interface_utilities::create_generators;
 use ark_ec::pairing::Pairing;
-use crate::utils::utilities_helper;
-use crate::utils::interface_utilities::HashToG1;
+
+use crate::{
+    key_gen::SecretKey,
+    constants::{
+        CIPHERSUITE_ID,
+        Constants
+    },
+    utils::{
+        core_utilities::{
+            hash_to_scalar,
+            calculate_domain,
+        },
+        interface_utilities::{
+            HashToG1,
+            msg_to_scalars,
+            create_generators,
+        },
+        utilities_helper::FromOkm,
+    }
+};
 
 // bbs signature
 #[derive(Debug, Default, CanonicalSerialize, CanonicalDeserialize, Clone, Copy)]
@@ -27,18 +37,16 @@ pub enum SignatureError {
     InvalidMessageAndGeneratorsLength,
 }
 
-impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
+impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
     
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-generation-sign
     pub fn sign<E, C, H>(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature<E, F>, SignatureError>  
-    
     where
-    E: Pairing,
-    C: Constants<E>,
-    H: HashToG1<E>,
-    E::G2: Mul<F, Output = E::G2>,
-    E::G1: Mul<F, Output = E::G1>,
-
+        E: Pairing,
+        C: Constants<E>,
+        H: HashToG1<E>,
+        E::G2: Mul<F, Output = E::G2>,
+        E::G1: Mul<F, Output = E::G1>,
     {
 
         let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
@@ -50,13 +58,12 @@ impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coresign
-    pub(crate) fn core_sign<E: Pairing, C: Constants<E>>(&self, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<Signature<E, F>, SignatureError>  
-    
+    pub(crate) fn core_sign<E, C>(&self, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<Signature<E, F>, SignatureError>  
     where 
-    E: Pairing,
-    E::G2: Mul<F, Output = E::G2>,
-    E::G1: Mul<F, Output = E::G1>,
-    
+        E: Pairing,
+        C: Constants<E>,
+        E::G2: Mul<F, Output = E::G2>,
+        E::G1: Mul<F, Output = E::G1>,
     {
         
         if messages.len() + 1 != generators.len() {
@@ -88,7 +95,7 @@ impl < F: Field+ utilities_helper::FromOkm<48, F>>SecretKey<F> {
 
         let e = hash_to_scalar(serialize_bytes.as_slice(), hash_to_scalar_dst.as_slice());
 
-        let mut b: E::G1 = C::bp1();
+        let mut b: E::G1 = C::BP1();
 
         b = b + generators[0] * domain;
 

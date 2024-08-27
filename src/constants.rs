@@ -1,50 +1,60 @@
-use ark_bn254::{G1Affine as G1, G2Affine as G2};
-use ark_bls12_381::{G1Affine as G1Bls12_381, G2Affine as G2Bls12_381};
-use ark_ec::AffineRepr;
-use ark_ec::{pairing::Pairing, short_weierstrass::Projective};
+use ark_bn254::{
+    G1Affine as G1Bn254, 
+    G2Affine as G2Bn254
+};
+use ark_bls12_381::{
+    G1Affine as G1Bls12_381, 
+    G2Affine as G2Bls12_381
+};
+use ark_ec::{
+    AffineRepr, 
+    pairing::Pairing, 
+    short_weierstrass::Projective
+};
 
+#[allow(non_snake_case)]
 pub trait Constants<E: Pairing> {
-    fn bp1() -> E::G1;
-    fn bp2() -> E::G2;
-    fn p1() -> E::G1;
-    fn p2() -> E::G2;
+    fn BP1() -> E::G1;
+    fn BP2() -> E::G2;
+    fn P1() -> E::G1;
+    fn P2() -> E::G2;
 }
 
 pub struct Bn254Const;
 pub struct Bls12381Const;
 
 impl <E: Pairing<G1 = Projective<ark_bn254::g1::Config>, G2 = Projective<ark_bn254::g2::Config>>>Constants<E> for Bn254Const {
-    fn bp1() -> E::G1 {
-        G1::generator().into()
+    fn BP1() -> E::G1 {
+        G1Bn254::generator().into()
     }
 
-    fn bp2() -> E::G2 {
-        G2::generator().into()
+    fn BP2() -> E::G2 {
+        G2Bn254::generator().into()
     }
 
-    fn p1() -> E::G1 {
-        G1::generator().into()
+    fn P1() -> E::G1 {
+        G1Bn254::generator().into()
     }
 
-    fn p2() -> E::G2 {
-        G2::generator().into()
+    fn P2() -> E::G2 {
+        G2Bn254::generator().into()
     }
 }
 
 impl <E: Pairing<G1 = Projective<ark_bls12_381::g1::Config>, G2 = Projective<ark_bls12_381::g2::Config>>>Constants<E> for Bls12381Const {
-    fn bp1() -> E::G1 {
+    fn BP1() -> E::G1 {
         G1Bls12_381::generator().into()
     }
 
-    fn bp2() -> E::G2 {
+    fn BP2() -> E::G2 {
         G2Bls12_381::generator().into()
     }
 
-    fn p1() -> E::G1 {
+    fn P1() -> E::G1 {
         G1Bls12_381::generator().into()
     }
 
-    fn p2() -> E::G2 {
+    fn P2() -> E::G2 {
         G2Bls12_381::generator().into()
     }
 }

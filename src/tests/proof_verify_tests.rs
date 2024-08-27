@@ -6,7 +6,7 @@ mod tests {
     use crate::proof_gen::{proof_gen, Proof};
     use crate::proof_verify::proof_verify;
     use crate::constants::Bn254Const;
-    use crate::utils::interface_utilities::HashToCurveBn254;
+    use crate::utils::interface_utilities::HashToG1Bn254;
     use test_case::test_case;
     use rand::Rng;
 
@@ -51,13 +51,13 @@ mod tests {
 
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
 
-        let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(&msg_slices, header).unwrap();
-        assert!(pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, header, &msg_slices).unwrap());
+        let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(&msg_slices, header).unwrap();
+        assert!(pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, header, &msg_slices).unwrap());
 
         let disclosed_msgs: Vec<&[u8]> = disclosed_indexes.iter().map(|i| msg_slices[*i]).collect();
 
-        let proof = proof_gen::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), signature, header, &[], &msg_slices, disclosed_indexes.as_slice());
-        assert!(proof_verify::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk, proof.unwrap(), header, &[], disclosed_msgs.as_slice(), disclosed_indexes.as_slice()).unwrap());
+        let proof = proof_gen::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), signature, header, &[], &msg_slices, disclosed_indexes.as_slice());
+        assert!(proof_verify::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk, proof.unwrap(), header, &[], disclosed_msgs.as_slice(), disclosed_indexes.as_slice()).unwrap());
     }
 
     #[test]
@@ -66,11 +66,11 @@ mod tests {
         let (sk, pk) = generate_key();
         let messages = generate_random_msg(10);
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
-        let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(&msg_slices, b"").unwrap();
-        let proof = proof_gen::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), signature, b"", &[], &msg_slices, &[0,1,5]).unwrap();
+        let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(&msg_slices, b"").unwrap();
+        let proof = proof_gen::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), signature, b"", &[], &msg_slices, &[0,1,5]).unwrap();
 
         // correct proof
-        assert!(proof_verify::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), proof.clone(), b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
+        assert!(proof_verify::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), proof.clone(), b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
 
         // case 1
         // forged proof
@@ -78,7 +78,7 @@ mod tests {
         forged_proof.a_bar = G1::identity().into();
 
         // should fail because of forged a_bar
-        assert!(!proof_verify::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), forged_proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
+        assert!(!proof_verify::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), forged_proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
         
         // case 2
         // default proof should fail
@@ -87,20 +87,20 @@ mod tests {
         };
 
         // result into error because of forged proof(commitment length is zero)
-        assert!(proof_verify::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), forged_proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).is_err());
+        assert!(proof_verify::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), forged_proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).is_err());
 
         // case 3
         // forged public key
         let forged_pk = PublicKey{
             ..Default::default()
         };
-        assert!(!proof_verify::<Bn254, Fr, HashToCurveBn254, Bn254Const>(forged_pk, proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
+        assert!(!proof_verify::<Bn254, Fr, HashToG1Bn254, Bn254Const>(forged_pk, proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
 
         // case 4
         let forged_proof = Proof{
             commitments: vec![Fr::from(0); 7],  // 10-3 where 3 is the disclosed indexes length
             ..Default::default()
         };
-        assert!(!proof_verify::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), forged_proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
+        assert!(!proof_verify::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), forged_proof, b"", &[], &[&msg_slices[0], &msg_slices[1], &msg_slices[5]], &[0,1,5]).unwrap());
     }
 }

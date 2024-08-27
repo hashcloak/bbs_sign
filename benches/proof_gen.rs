@@ -1,11 +1,13 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use rand::Rng;
-use bbs_plus::key_gen::SecretKey;
-use bbs_plus::proof_gen::proof_gen;
 use ark_bn254::{Fr, Bn254};
-use bbs_plus::key_gen::PublicKey;
-use bbs_plus::constants::Bn254Const;
-use bbs_plus::utils::interface_utilities::HashToCurveBn254;
+use rand::Rng;
+
+use bbs_plus::{
+    key_gen::{ SecretKey, PublicKey },
+    proof_gen::proof_gen,
+    constants::Bn254Const,
+    utils::interface_utilities::HashToG1Bn254,
+};
 
 // benchmarking proof generation on single message with varying message length
 pub fn proof_gen_benchmark_single_msg(c: &mut Criterion) {
@@ -25,10 +27,10 @@ pub fn proof_gen_benchmark_single_msg(c: &mut Criterion) {
 
         let mut rng = rand::thread_rng();
         let msg: Vec<u8> = (0..size).map(|_| rng.gen::<u8>()).collect(); // generating random message
-        let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(&[&msg], &[]).unwrap();
-        assert!(pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, &[], black_box(&[&msg])).unwrap());
+        let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(&[&msg], &[]).unwrap();
+        assert!(pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, &[], black_box(&[&msg])).unwrap());
 
-        b.iter(|| proof_gen::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), signature, &[], &[],&[&msg], &[]));
+        b.iter(|| proof_gen::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), signature, &[], &[],&[&msg], &[]));
 
         });
     }
@@ -63,10 +65,10 @@ pub fn proof_gen_benchmark_multiple_msgs(c: &mut Criterion) {
         let msg_slices: Vec<&[u8]> = random_msgs_vecs.iter().map(|v| v.as_slice()).collect();
         let msgs: &[&[u8]] = &msg_slices;
 
-        let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(msgs, &[]).unwrap();
-        assert!(pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, &[], black_box(msgs)).unwrap());
+        let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(msgs, &[]).unwrap();
+        assert!(pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, &[], black_box(msgs)).unwrap());
 
-        b.iter(|| proof_gen::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), signature, &[], &[],msgs, &[]));
+        b.iter(|| proof_gen::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), signature, &[], &[],msgs, &[]));
 
         });
     }
@@ -94,8 +96,8 @@ pub fn proof_gen_benchmark_multiple_disclosed_indices(c: &mut Criterion) {
     let msg_slices: Vec<&[u8]> = random_msgs_vecs.iter().map(|v| v.as_slice()).collect();
     let msgs: &[&[u8]] = &msg_slices;
     
-    let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(msgs, &[]).unwrap();
-    assert!(pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, &[], black_box(msgs)).unwrap());
+    let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(msgs, &[]).unwrap();
+    assert!(pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, &[], black_box(msgs)).unwrap());
 
     let mut group = c.benchmark_group("proof_gen_multiple_disclosed_indices");
 
@@ -105,7 +107,7 @@ pub fn proof_gen_benchmark_multiple_disclosed_indices(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(*indices as u64));
         group.bench_with_input(BenchmarkId::from_parameter(indices), indices, |b, &indices| {
         
-        b.iter(|| proof_gen::<Bn254, Fr, HashToCurveBn254, Bn254Const>(pk.clone(), signature, &[], &[],msgs, (0..indices).collect::<Vec<_>>().as_slice()));
+        b.iter(|| proof_gen::<Bn254, Fr, HashToG1Bn254, Bn254Const>(pk.clone(), signature, &[], &[],msgs, (0..indices).collect::<Vec<_>>().as_slice()));
 
         });
     }

@@ -3,7 +3,7 @@ mod tests {
 
     use crate::{constants::Bn254Const, key_gen::{PublicKey, SecretKey}};
     use ark_bn254::{Bn254, Fr, G1Affine as G1};
-    use crate::utils::interface_utilities::HashToCurveBn254;
+    use crate::utils::interface_utilities::HashToG1Bn254;
     use rand::Rng;
     use test_case::test_case;
 
@@ -47,8 +47,8 @@ mod tests {
 
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
 
-        let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(&msg_slices, header).unwrap();
-        assert!(pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, header, &msg_slices).unwrap());
+        let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(&msg_slices, header).unwrap();
+        assert!(pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, header, &msg_slices).unwrap());
     }
 
     #[test]
@@ -63,28 +63,28 @@ mod tests {
         let messages = generate_random_msg(count);
         let msg_slices: Vec<&[u8]> = messages.iter().map(|v| v.as_slice()).collect();
 
-        let signature = sk.sign::<Bn254, Bn254Const, HashToCurveBn254>(&msg_slices, header).unwrap();
+        let signature = sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(&msg_slices, header).unwrap();
 
         // valid signature verification
-        assert!(pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, header, &msg_slices).unwrap());
+        assert!(pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, header, &msg_slices).unwrap());
         
         // forged signature
         let mut forged_signature = signature.clone();
         forged_signature.a = G1::identity().into();
-        assert!(!pk.verify::<Fr, HashToCurveBn254, Bn254Const>(forged_signature, header, &msg_slices).unwrap());
+        assert!(!pk.verify::<Fr, HashToG1Bn254, Bn254Const>(forged_signature, header, &msg_slices).unwrap());
 
         // forged header
         let forged_header = b"abc";
-        assert!(!pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, forged_header, &msg_slices).unwrap());
+        assert!(!pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, forged_header, &msg_slices).unwrap());
 
         // forged public key
         let forged_pk = PublicKey::default();
-        assert!(!forged_pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, header, &msg_slices).unwrap());
+        assert!(!forged_pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, header, &msg_slices).unwrap());
 
         // forged messages
         let mut forged_messages = msg_slices.clone();
         forged_messages[0] = &[0,1];
-        assert!(!pk.verify::<Fr, HashToCurveBn254, Bn254Const>(signature, header, &forged_messages).unwrap());
+        assert!(!pk.verify::<Fr, HashToG1Bn254, Bn254Const>(signature, header, &forged_messages).unwrap());
 
     }
 }

@@ -1,9 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use bbs_plus::key_gen::SecretKey;
-use ark_bn254::Bn254;
-use ark_bn254::Fr;
+use ark_bn254::{ Bn254, Fr };
 use rand::Rng;
 
+use bbs_plus::key_gen::SecretKey;
 
 pub fn keygen_benchmark(c: &mut Criterion) {
 

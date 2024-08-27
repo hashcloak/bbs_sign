@@ -1,16 +1,24 @@
-// use ark_bn254::{ Fr, G2Affine as G2};
-// use ark_ec::{ CurveGroup, AffineRepr };
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use digest::generic_array::{GenericArray, typenum::U48};
-use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
+use digest::generic_array::{
+    GenericArray, 
+    typenum::U48
+};
+use ark_serialize::{ 
+    CanonicalSerialize, 
+    CanonicalDeserialize 
+};
 use thiserror::Error;
 use ark_ff::Field;
-use ark_ec::pairing::Pairing;
-use ark_ec::Group;
+use ark_ec::{
+    pairing::Pairing, 
+    Group
+};
 use elliptic_curve::ops::Mul;
 
-use crate::utils::core_utilities::hash_to_scalar;
-use crate::utils::utilities_helper;
+use crate::utils::{
+    core_utilities::hash_to_scalar,
+    utilities_helper::FromOkm,
+};
 
 // Public Key
 #[derive(Debug,CanonicalDeserialize, CanonicalSerialize, Clone)]
@@ -53,7 +61,7 @@ impl <F: Field>SecretKey<F> {
     
     where
     E: Pairing,
-    F: Field + utilities_helper::FromOkm<48, F>,{
+    F: Field + FromOkm<48, F>,{
 
         if key_material.len() < 32 {
             return Err(KeyGenError::InvalidKeyMaterialLength);
@@ -85,10 +93,11 @@ impl <F: Field>SecretKey<F> {
     }
 
     pub fn sk_to_pk<E: Pairing>(&self) -> PublicKey<E> 
-    where <E as Pairing>::G2: Mul<F>, <E as Pairing>::G2: From<<<E as Pairing>::G2 as Mul<F>>::Output>
+    where 
+    E::G2: Mul<F, Output = E::G2>, 
     {
         PublicKey{
-            pk: (E::G2::generator() * self.sk).into()}
+            pk: (E::G2::generator() * self.sk)}
     }
 
     // TODO: may not be required. `key_gen` implements the generation of secret key according to the spec
@@ -97,7 +106,7 @@ impl <F: Field>SecretKey<F> {
     pub fn gen_sk<E>(msg: &[u8]) -> Self 
     where
     E: Pairing,
-    F: Field + utilities_helper::FromOkm<48, F>,
+    F: Field + FromOkm<48, F>,
     {
         const SALT: &[u8] = b"BBS-SIG-KEYGEN-SALT-";
         // copy of `msg` with appended zero byte

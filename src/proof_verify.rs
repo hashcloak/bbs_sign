@@ -1,30 +1,44 @@
 use ark_ec::pairing::Pairing;
 use ark_ff::fields::Field;
-
-use crate::key_gen::PublicKey;
-use crate::proof_gen::{proof_challenge_calculate, InitProof, Proof, ProofGenError};
-use crate::utils::core_utilities::calculate_domain;
-use crate::utils::interface_utilities::{msg_to_scalars, create_generators};
-use crate::utils::utilities_helper;
-use crate::utils::interface_utilities::HashToG1;
 use elliptic_curve::ops::Mul;
-use crate::constants::Constants;
-use crate::constants::CIPHERSUITE_ID;
+use std::{
+    collections::HashSet,
+    iter::FromIterator
+};
 
-use std::collections::HashSet;
-use std::iter::FromIterator;
+use crate::{
+    key_gen::PublicKey,
+    proof_gen::{
+        proof_challenge_calculate, 
+        InitProof, 
+        Proof, 
+        ProofGenError
+    },
+    utils::{
+        core_utilities::calculate_domain,
+        interface_utilities::{
+            msg_to_scalars, 
+            create_generators,
+            HashToG1,
+        },
+        utilities_helper::FromOkm,
+    },
+    constants::{
+        CIPHERSUITE_ID,
+        Constants,
+    }
+};
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-verification-proofver
 // disclosed_messages and disclosed_indexes should be in same(increasing) order otherwise the proof will fail
-pub fn proof_verify<E: Pairing, F: Field+ utilities_helper::FromOkm<48, F>, H: HashToG1<E>, C: Constants<E>>(pk: PublicKey<E>, proof: Proof<E, F>, header: &[u8], ph: &[u8], disclosed_messages: &[&[u8]], disclosed_indexes: &[usize]) -> Result<bool, ProofGenError> 
-
+pub fn proof_verify<E, F, H, C>(pk: PublicKey<E>, proof: Proof<E, F>, header: &[u8], ph: &[u8], disclosed_messages: &[&[u8]], disclosed_indexes: &[usize]) -> Result<bool, ProofGenError> 
 where
     E: Pairing,
+    F: Field+ FromOkm<48, F>,
     C: Constants<E>,
-    // H: HashToG1<E>,
+    H: HashToG1<E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
-
 {
 
     let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
@@ -36,15 +50,13 @@ where
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreproofverify
-pub(crate) fn core_proof_verify<E: Pairing, F: Field+ utilities_helper::FromOkm<48, F>, C: Constants<E>>(pk: PublicKey<E>, proof: Proof<E, F>, generators: &[E::G1], header: &[u8], ph: &[u8], disclosed_messages: &[F], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<bool, ProofGenError> 
-
+pub(crate) fn core_proof_verify<E, F, C>(pk: PublicKey<E>, proof: Proof<E, F>, generators: &[E::G1], header: &[u8], ph: &[u8], disclosed_messages: &[F], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<bool, ProofGenError> 
 where
     E: Pairing,
+    F: Field+ FromOkm<48, F>,
     C: Constants<E>,
-    // H: HashToG1<E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
-
 {
 
     let init_res = proof_verify_init::<E, F, C>(pk.clone(), proof.clone(), generators, header, &disclosed_messages, disclosed_indexes, api_id);
@@ -64,20 +76,18 @@ where
         return Ok(false);
     }
 
-    Ok(E::pairing(proof.a_bar, pk.pk).0 * E::pairing(proof.b_bar, -C::bp2()).0 == E::TargetField::ONE)
+    Ok(E::pairing(proof.a_bar, pk.pk).0 * E::pairing(proof.b_bar, -C::BP2()).0 == E::TargetField::ONE)
     
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreproofverify
-pub(crate) fn proof_verify_init<E: Pairing, F: Field+ utilities_helper::FromOkm<48, F>, C>(pk: PublicKey<E>, proof: Proof<E, F>, generators: &[E::G1], header: &[u8], disclosed_messages: &[F], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<InitProof<E, F>, ProofGenError> 
-
+pub(crate) fn proof_verify_init<E, F, C>(pk: PublicKey<E>, proof: Proof<E, F>, generators: &[E::G1], header: &[u8], disclosed_messages: &[F], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<InitProof<E, F>, ProofGenError> 
 where
     E: Pairing,
+    F: Field+ FromOkm<48, F>,
     C: Constants<E>,
-    // H: HashToG1<E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
-
 {
 
     let u = proof.commitments.len();
@@ -107,7 +117,7 @@ where
     let domain = calculate_domain::<E, F, 48>(&pk, generators[0], &generators[1..], header, api_id);
 
     let t1 = proof.b_bar * proof.challenge.scalar + proof.a_bar * proof.e_cap + proof.d * proof.r1_cap;
-    let mut bv = C::bp1() + generators[0] * domain;
+    let mut bv = C::BP1() + generators[0] * domain;
 
     let msg_generators = generators[1..].to_vec();
 

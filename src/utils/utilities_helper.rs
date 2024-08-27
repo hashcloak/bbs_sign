@@ -1,13 +1,14 @@
-use std::usize;
-use ark_bn254::fr::Fr;
+use ark_bn254::Fr;
 use ark_ff::Field;
 use num_bigint::BigUint;
-use digest::generic_array::GenericArray;
 use num_integer::Integer;
-use digest::generic_array::typenum::U32;
-pub use sha2::{Sha256, digest::Digest};
+use sha2::{Sha256, digest::Digest};
 use subtle::{Choice, ConditionallySelectable};
 use ark_bls12_381::Fr as FrBls12_381;
+use digest::generic_array::{
+    GenericArray, 
+    typenum::U32
+};
 
 pub trait FromOkm<const L: usize, F: Field>: Sized {
     /// Convert a byte sequence into a scalar

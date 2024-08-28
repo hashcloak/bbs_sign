@@ -23,10 +23,7 @@ use crate::{
         },
         utilities_helper::FromOkm,
     },
-    constants::{
-        CIPHERSUITE_ID,
-        Constants,
-    }
+    constants::Constants,
 };
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-verification-proofver
@@ -35,13 +32,13 @@ pub fn proof_verify<E, F, H, C>(pk: PublicKey<E>, proof: Proof<E, F>, header: &[
 where
     E: Pairing,
     F: Field+ FromOkm<48, F>,
-    C: Constants<E>,
+    C: for<'a> Constants<'a, E>,
     H: HashToG1<E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 {
 
-    let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
+    let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
     let message_scalars = msg_to_scalars::<E, F, 48>(disclosed_messages, &api_id);
     let generators = create_generators::<E, H>(proof.commitments.len() + disclosed_indexes.len() + 1, &api_id);
@@ -54,7 +51,7 @@ pub(crate) fn core_proof_verify<E, F, C>(pk: PublicKey<E>, proof: Proof<E, F>, g
 where
     E: Pairing,
     F: Field+ FromOkm<48, F>,
-    C: Constants<E>,
+    C: for<'a> Constants<'a, E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 {
@@ -85,7 +82,7 @@ pub(crate) fn proof_verify_init<E, F, C>(pk: PublicKey<E>, proof: Proof<E, F>, g
 where
     E: Pairing,
     F: Field+ FromOkm<48, F>,
-    C: Constants<E>,
+    C: for<'a> Constants<'a, E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 {

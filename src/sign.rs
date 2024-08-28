@@ -6,10 +6,7 @@ use ark_ec::pairing::Pairing;
 
 use crate::{
     key_gen::SecretKey,
-    constants::{
-        CIPHERSUITE_ID,
-        Constants
-    },
+    constants::Constants,
     utils::{
         core_utilities::{
             hash_to_scalar,
@@ -43,13 +40,13 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
     pub fn sign<E, C, H>(&self, messages: &[&[u8]], header: &[u8]) ->  Result<Signature<E, F>, SignatureError>  
     where
         E: Pairing,
-        C: Constants<E>,
+        C: for<'a> Constants<'a, E>,
         H: HashToG1<E>,
         E::G2: Mul<F, Output = E::G2>,
         E::G1: Mul<F, Output = E::G1>,
     {
 
-        let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
+        let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
         let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
         let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
@@ -61,7 +58,7 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
     pub(crate) fn core_sign<E, C>(&self, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<Signature<E, F>, SignatureError>  
     where 
         E: Pairing,
-        C: Constants<E>,
+        C: for<'a> Constants<'a, E>,
         E::G2: Mul<F, Output = E::G2>,
         E::G1: Mul<F, Output = E::G1>,
     {

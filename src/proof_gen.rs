@@ -24,10 +24,7 @@ use crate::utils::{
 use crate::{
     key_gen::PublicKey,
     sign::Signature,
-    constants::{
-        CIPHERSUITE_ID,
-        Constants,
-    }
+    constants::Constants,
 };
 
 #[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize, Default)]
@@ -96,13 +93,13 @@ where
     E: Pairing,
     F: Field+ FromOkm<48, F>,
     H: HashToG1<E>,
-    C: Constants<E>,
+    C: for<'a> Constants<'a, E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 
 {
 
-    let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
+    let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
     let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
     let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
 
@@ -115,7 +112,7 @@ pub(crate) fn core_proof_gen<E, F, C>(pk: PublicKey<E>, signature: Signature<E, 
 where
     E: Pairing,
     F: Field+ FromOkm<48, F>,
-    C: Constants<E>,
+    C: for<'a> Constants<'a, E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 
@@ -188,7 +185,7 @@ pub(crate) fn proof_init<E, F, C>(pk: PublicKey<E>, signature: Signature<E, F>, 
 where
     E: Pairing,
     F: Field + FromOkm<48, F>,
-    C: Constants<E>,
+    C: for<'a> Constants<'a, E>,
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 {

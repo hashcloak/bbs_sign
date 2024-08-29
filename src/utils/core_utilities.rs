@@ -1,22 +1,32 @@
-use ark_bn254::{Fr, G1Affine as G1};
+use ark_ec::pairing::Pairing;
+use ark_ff::Field;
 use ark_serialize::CanonicalSerialize;
 
-use super::utilities_helper::{ expand_message, FromOkm};
-use crate::key_gen::PublicKey;
+use crate::{
+    utils::utilities_helper::{ expand_message, FromOkm},
+    key_gen::PublicKey
+};
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-hash-to-scalar
-pub fn hash_to_scalar(msg: &[u8], dst: &[u8]) -> Fr {
+pub fn hash_to_scalar<const L: usize, F>(msg: &[u8], dst: &[u8]) -> F 
+where 
+    F: Field + FromOkm<L, F>,
+{
 
     // expand_len aka len_in_bytes = 48: Must be defined to be at least ceil((ceil(log2(r))+k)/8), where log2(r) and k are defined by each ciphersuite 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-additional-parameters
-    let uniform_bytes = expand_message(msg, dst, 48);
+    let uniform_bytes = expand_message(msg, dst, L);
     
-    let data: &[u8; 192] = &uniform_bytes[..].try_into().unwrap();
-    Fr::from_okm(data)
+    let data: &[u8; L] = &uniform_bytes[..L].try_into().unwrap();
+    F::from_okm(data)
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-domain-calculation
-pub fn calculate_domain(pk: &PublicKey, q_1: G1, h_points: &[G1], header: &[u8], api_id: &[u8]) -> Fr {
+pub fn calculate_domain<E, F, const L: usize> (pk: &PublicKey<E>, q_1: E::G1, h_points: &[E::G1], header: &[u8], api_id: &[u8]) -> F 
+where 
+    E: Pairing,
+    F: Field + FromOkm<L, F>,
+{
     
     let l = h_points.len();
     let mut dom_octs = Vec::new();
@@ -46,7 +56,7 @@ pub fn calculate_domain(pk: &PublicKey, q_1: G1, h_points: &[G1], header: &[u8],
 
     let hash_to_scalar_dst = [api_id, b"H2S_"].concat();
 
-    hash_to_scalar(&dom_input, &hash_to_scalar_dst)
+    hash_to_scalar::<L, F>(&dom_input, &hash_to_scalar_dst)
 
 }
 
@@ -55,12 +65,15 @@ fn get_random(len: usize) -> Vec<u8> {
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-random-scalars
-pub fn calculate_random_scalars(count: usize) -> Vec<Fr> {
+pub fn calculate_random_scalars<const L: usize, F>(count: usize) -> Vec<F> 
+where 
+    F: Field + FromOkm<L, F>
+{
     let mut result = Vec::with_capacity(count);
 
     for _ in 0..count {
-        let data: &[u8; 48] = &get_random(48)[..].try_into().unwrap();
-        result.push(Fr::from_okm(data));
+        let data: &[u8; L] = &get_random(L)[..].try_into().unwrap();
+        result.push(F::from_okm(data));
     }
     result
 }

@@ -1,42 +1,63 @@
-use ark_bn254::{ G1Affine as G1, Fr, G1Projective, Fq12, Bn254};
-use ark_ec::{ pairing::Pairing, AffineRepr};
+use ark_ec::pairing::Pairing;
 use ark_ff::fields::Field;
+use elliptic_curve::ops::Mul;
 
-use crate::key_gen::PublicKey;
-use crate::sign::{SignatureError, Signature};
-use crate::utils::core_utilities::calculate_domain;
-use crate::constants::{P1, BP2, CIPHERSUITE_ID};
-use crate::utils::interface_utilities::msg_to_scalars;
-use crate::utils::interface_utilities::create_generators;
+use crate::{
+    key_gen::PublicKey,
+    constants::Constants,
+    sign::{
+        Signature,
+        SignatureError,
+    },
+    utils::{
+        core_utilities::calculate_domain,
+        interface_utilities::{ HashToG1, msg_to_scalars, create_generators },
+        utilities_helper::FromOkm,
+    }
+};
 
-impl PublicKey {
+impl <E: Pairing>PublicKey<E> {
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-signature-verification-veri
-    pub fn verify(&self, signature: Signature, header: &[u8], messages: &[&[u8]]) -> Result<bool, SignatureError> {
+    pub fn verify<F, H, C>(&self, signature: Signature<E, F>, header: &[u8], messages: &[&[u8]]) -> Result<bool, SignatureError> 
+    where 
+        F: Field+ FromOkm<48, F>,
+        H: HashToG1<E>,
+        C: for<'a> Constants<'a, E>,
+        E::G2: Mul<F, Output = E::G2>,
+        E::G1: Mul<F, Output = E::G1>,
+    {
         
-        let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
-        let message_scalars = msg_to_scalars(messages, &api_id);
-        let generators = create_generators(messages.len() + 1, &api_id);
+        let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
+        let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
+        let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
 
-        self.core_verify(signature, generators.as_slice(), header, &message_scalars, &api_id)
+        self.core_verify::<F, C, H>(signature, generators.as_slice(), header, &message_scalars, &api_id)
     }
     
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreverify
-    pub(crate) fn core_verify(&self, signature: Signature, generators: &[G1], header: &[u8], messages: &[Fr], api_id: &[u8]) -> Result<bool, SignatureError> {
+    pub(crate) fn core_verify<F, C, H>(&self, signature: Signature<E, F>, generators: &[E::G1], header: &[u8], messages: &[F], api_id: &[u8]) -> Result<bool, SignatureError> 
+    where 
+        F: Field+ FromOkm<48, F>,
+        C: for<'a> Constants<'a, E>,
+        H: HashToG1<E>,
+        E::G2: Mul<F, Output = E::G2>,
+        E::G1: Mul<F, Output = E::G1>,
+    {
         
         if messages.len() + 1 != generators.len() {
             return Err(SignatureError::InvalidMessageAndGeneratorsLength);
         }
 
-        let domain = calculate_domain(self, generators[0], &generators[1..], header, api_id);
+        let domain = calculate_domain::<E, F, 48>(self, generators[0], &generators[1..], header, api_id);
 
-        let mut b: G1Projective = P1.into_group();
+        let mut b: E::G1 = C::BP1();
         b = b + generators[0] * domain;
 
         for i in 1..generators.len() {
             b = b + generators[i] * messages[i - 1];
         }
-
-        Ok(Bn254::pairing(signature.a, self.pk + BP2.into_group() * signature.e).0 * Bn254::pairing(b, -BP2.into_group()).0 == Fq12::ONE)
+        
+        Ok(E::pairing(signature.a, self.pk + C::BP2() * signature.e).0 * E::pairing(b, -C::BP2()).0 == E::TargetField::ONE)
     }
 }

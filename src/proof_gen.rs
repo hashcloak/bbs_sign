@@ -1,39 +1,73 @@
-use ark_bn254::{Fr, G1Affine as G1, G1Projective};
-use ark_serialize::{CanonicalSerialize,CanonicalDeserialize};
-use ark_ec::AffineRepr;
+use ark_ec::pairing::Pairing;
+use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
 use ark_ff::Field;
-use std::collections::HashSet;
-use std::iter::FromIterator;
+use std::{
+    collections::HashSet,
+    iter::FromIterator
+};
 use thiserror::Error;
+use elliptic_curve::ops::Mul;
 
-use crate::utils::core_utilities::{calculate_domain, hash_to_scalar, calculate_random_scalars};
-use crate::utils::interface_utilities::{msg_to_scalars, create_generators};
-use crate::key_gen::PublicKey;
-use crate::sign::Signature;
-use crate::constants::{P1, CIPHERSUITE_ID};
+use crate::utils::{
+    core_utilities::{
+        calculate_domain, 
+        hash_to_scalar, 
+        calculate_random_scalars
+    },
+    interface_utilities::{
+        HashToG1,
+        msg_to_scalars,
+        create_generators,
+    },
+    utilities_helper::FromOkm,
+};
+use crate::{
+    key_gen::PublicKey,
+    sign::Signature,
+    constants::Constants,
+};
 
 #[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize, Default)]
-pub struct InitProof {
-    pub points: [G1;5],
-    pub scalar: Fr,
+pub struct InitProof<E: Pairing, F: Field> {
+    pub points: [E::G1;5],
+    pub scalar: F,
 }
 
 #[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize, Default)]
-pub struct Challenge {
-    pub scalar: Fr,
+pub struct Challenge<F: Field> {
+    pub scalar: F,
 }
 
-#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize, Default)]
-pub struct Proof {
+#[derive(Clone, Debug, CanonicalSerialize, CanonicalDeserialize)]
+pub struct Proof<E: Pairing, F: Field> {
     
-    pub a_bar: G1,
-    pub b_bar: G1,
-    pub d: G1,
-    pub e_cap: Fr,
-    pub r1_cap: Fr,
-    pub r3_cap: Fr,
-    pub commitments: Vec<Fr>,
-    pub challenge: Challenge,
+    pub a_bar: E::G1,
+    pub b_bar: E::G1,
+    pub d: E::G1,
+    pub e_cap: F,
+    pub r1_cap: F,
+    pub r3_cap: F,
+    pub commitments: Vec<F>,
+    pub challenge: Challenge<F>,
+}
+
+impl<E: Pairing, F: Field> Default for Proof<E, F>
+where
+    E::G1: Default,
+    F: Default,
+{
+    fn default() -> Self {
+        Proof {
+            a_bar: E::G1::default(),
+            b_bar: E::G1::default(),
+            d: E::G1::default(),
+            e_cap: F::default(),
+            r1_cap: F::default(),
+            r3_cap: F::default(),
+            commitments: Vec::new(),
+            challenge: Challenge::default()
+        }
+    }
 }
 
 #[derive(Debug, Error)]
@@ -54,17 +88,35 @@ pub enum ProofGenError {
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-generation-proofgen
-pub fn proof_gen(pk: PublicKey, signature: Signature, header: &[u8], ph: &[u8], messages: &[&[u8]], disclosed_indexes: &[usize]) -> Result<Proof, ProofGenError> {
+pub fn proof_gen<E, F, H, C>(pk: PublicKey<E>, signature: Signature<E,F>, header: &[u8], ph: &[u8], messages: &[&[u8]], disclosed_indexes: &[usize]) -> Result<Proof<E, F>, ProofGenError> 
+where
+    E: Pairing,
+    F: Field+ FromOkm<48, F>,
+    H: HashToG1<E>,
+    C: for<'a> Constants<'a, E>,
+    E::G2: Mul<F, Output = E::G2>,
+    E::G1: Mul<F, Output = E::G1>,
 
-    let api_id = [CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
-    let message_scalars = msg_to_scalars(messages, &api_id);
-    let generators = create_generators(messages.len() + 1, &api_id);
+{
 
-    core_proof_gen(pk, signature, header, &generators, ph, &message_scalars, disclosed_indexes, &api_id)
+    let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
+    let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
+    let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
+
+    core_proof_gen::<E, F, C>(pk, signature, header, &generators, ph, &message_scalars, disclosed_indexes, &api_id)
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-coreproofgen
-pub(crate) fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8], generators: &[G1], ph: &[u8], messages: &[Fr], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<Proof, ProofGenError> {
+pub(crate) fn core_proof_gen<E, F, C>(pk: PublicKey<E>, signature: Signature<E, F>, header: &[u8], generators: &[E::G1], ph: &[u8], messages: &[F], disclosed_indexes: &[usize], api_id: &[u8]) -> Result<Proof<E, F>, ProofGenError> 
+
+where
+    E: Pairing,
+    F: Field+ FromOkm<48, F>,
+    C: for<'a> Constants<'a, E>,
+    E::G2: Mul<F, Output = E::G2>,
+    E::G1: Mul<F, Output = E::G1>,
+
+{
 
     let l = messages.len();
     let r = disclosed_indexes.len();
@@ -78,7 +130,7 @@ pub(crate) fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8],
         }
     }
 
-    let random_scalars = calculate_random_scalars(5 + l - r);
+    let random_scalars = calculate_random_scalars::<48, F>(5 + l - r);
 
     let full_indexes: HashSet<usize> = HashSet::from_iter(0..l);
     let disclosed_set: HashSet<usize> = HashSet::from_iter(disclosed_indexes.iter().cloned());
@@ -91,7 +143,7 @@ pub(crate) fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8],
     let mut undisclosed_indexes: Vec<usize> = undisclosed_set.into_iter().collect();
     undisclosed_indexes.sort();
 
-    let init_res = proof_init(
+    let init_res = proof_init::<E, F, C>(
         pk,
         signature,
         generators,
@@ -107,13 +159,13 @@ pub(crate) fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8],
     }
     let init_res = init_res.unwrap();
 
-    let disclosed_messages: Vec<Fr> = disclosed_indexes
+    let disclosed_messages: Vec<F> = disclosed_indexes
     .iter()
     .filter_map(|&i| messages.get(i).cloned())
     .collect();
 
 
-    let undisclosed_messages: Vec<Fr> = undisclosed_indexes
+    let undisclosed_messages: Vec<F> = undisclosed_indexes
     .iter()
     .filter_map(|&i| messages.get(i).cloned())
     .collect();
@@ -129,7 +181,14 @@ pub(crate) fn core_proof_gen(pk: PublicKey, signature: Signature, header: &[u8],
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-initialization
-pub(crate) fn proof_init(pk: PublicKey, signature: Signature, generators: &[G1], random_scalars: &[Fr], header: &[u8], messages: &[Fr], undisclosed_indexes: &[usize], api_id: &[u8]) -> Result<InitProof, ProofGenError> {
+pub(crate) fn proof_init<E, F, C>(pk: PublicKey<E>, signature: Signature<E, F>, generators: &[E::G1], random_scalars: &[F], header: &[u8], messages: &[F], undisclosed_indexes: &[usize], api_id: &[u8]) -> Result<InitProof<E, F>, ProofGenError> 
+where
+    E: Pairing,
+    F: Field + FromOkm<48, F>,
+    C: for<'a> Constants<'a, E>,
+    E::G2: Mul<F, Output = E::G2>,
+    E::G1: Mul<F, Output = E::G1>,
+{
 
     if messages.len() + 1 != generators.len() {
         return Err(ProofGenError::InvalidMessageAndGeneratorsLength);
@@ -143,9 +202,9 @@ pub(crate) fn proof_init(pk: PublicKey, signature: Signature, generators: &[G1],
         return Err(ProofGenError::InvalidUndisclosedIndicesLength);
     }
 
-    let domain = calculate_domain(&pk, generators[0], &generators[1..], header, api_id);
+    let domain = calculate_domain::<E, F, 48>(&pk, generators[0], &generators[1..], header, api_id);
 
-    let mut b: G1Projective = P1.into_group() + generators[0] * domain;
+    let mut b: E::G1 = C::BP1() + generators[0] * domain;
 
     for i in 0..messages.len() {
         b = b + (generators[i+1] * messages[i]);
@@ -162,13 +221,17 @@ pub(crate) fn proof_init(pk: PublicKey, signature: Signature, generators: &[G1],
     }
 
     Ok(InitProof{
-        points: [a_bar.into(), b_bar.into(), d.into(), t1.into(), t2.into()],
+        points: [a_bar, b_bar, d, t1, t2],
         scalar: domain,
     })   
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-challenge-calculation
-pub(crate) fn proof_challenge_calculate(init_res: &InitProof, disclosed_messages: &[Fr], disclosed_indexes: &[usize], ph: &[u8], api_id: &[u8]) -> Result<Challenge, ProofGenError> {
+pub(crate) fn proof_challenge_calculate<E,F>(init_res: &InitProof<E, F>, disclosed_messages: &[F], disclosed_indexes: &[usize], ph: &[u8], api_id: &[u8]) -> Result<Challenge<F>, ProofGenError> 
+where 
+    E: Pairing,
+    F: Field + FromOkm<48, F>,
+{
     
     if disclosed_messages.len() != disclosed_indexes.len() {
         return Err(ProofGenError::InvalidIndicesAndMessagesLength);
@@ -206,13 +269,17 @@ pub(crate) fn proof_challenge_calculate(init_res: &InitProof, disclosed_messages
     serialize_bytes.extend_from_slice(&ph);
 
     Ok(Challenge { 
-        scalar: hash_to_scalar(&serialize_bytes, &hash_to_scalar_dst) 
+        scalar: hash_to_scalar::<48, F>(&serialize_bytes, &hash_to_scalar_dst) 
     })
 
 }
 
 // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-proof-finalization
-pub(crate) fn proof_finalize(init_res: &InitProof, challenge: &Challenge, e_value: Fr, random_scalars: &[Fr], undisclosed_messages: &[Fr]) -> Result<Proof, ProofGenError> {
+pub(crate) fn proof_finalize<E, F>(init_res: &InitProof<E, F>, challenge: &Challenge<F>, e_value: F, random_scalars: &[F], undisclosed_messages: &[F]) -> Result<Proof<E, F>, ProofGenError> 
+where
+    E: Pairing,
+    F: Field,
+{
 
     if random_scalars.len() != undisclosed_messages.len() + 5 {
         return Err(ProofGenError::InvalidRandomScalarsAndUndisclosedIndicesLength);

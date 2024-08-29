@@ -1,19 +1,90 @@
-use ark_bn254::{Fr, G1Affine as G1, G2Affine as G2};
-use ark_ec::AffineRepr;
-use once_cell::sync::Lazy;
+use ark_bn254::{
+    G1Affine as G1Bn254, 
+    G2Affine as G2Bn254,
+    Fr as FrBn254,
+    g1::Config as BnG1Config,
+    g2::Config as BnG2Config
+};
+use ark_bls12_381::{
+    Fr as FrBls12_381, 
+    G1Affine as G1Bls12_381, 
+    G2Affine as G2Bls12_381,
+    g1::Config as BlsG1Config,
+    g2::Config as BlsG2Config
+};
+use ark_ec::{
+    AffineRepr, 
+    pairing::Pairing, 
+    short_weierstrass::Projective
+};
 
-// BP1, BP2
-// base (constant) points on the G1 and G2 subgroups respectively
-pub static BP1: Lazy<G1> = Lazy::new(|| G1::generator());
-pub static BP2: Lazy<G2> = Lazy::new(|| G2::generator());
+#[allow(non_snake_case)]
+pub trait Constants<'a, E: Pairing> {
+    fn BP1() -> E::G1;
+    fn BP2() -> E::G2;
+    fn P1() -> E::G1;
+    fn P2() -> E::G2;
 
-// TODO: Parameters: P1, P2: change according to ciphersuite
-// P1 and P2, fixed point of G1 and G2, defined by the ciphersuite different from BP1 and BP2.
-pub static P1: Lazy<G1> = Lazy::new(|| (G1::generator() * Fr::from(2)).into());
-pub static P2: Lazy<G2> = Lazy::new(|| (G2::generator() * Fr::from(3)).into());
+    const CIPHERSUITE_ID: &'a [u8];
+    const SEED_DST: &'a [u8];
+    const GENERATOR_DST: &'a [u8];
+    const GENERATOR_SEED: &'a [u8];
+}
 
-// https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-7
-pub const CIPHERSUITE_ID: &[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_";
-pub const SEED_DST: &[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
-pub const GENERATOR_DST: &[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_SIG_GENERATOR_DST_";
-pub const GENERATOR_SEED: &[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
+pub struct Bn254Const;
+pub struct Bls12381Const;
+
+impl <E: Pairing<G1 = Projective<BnG1Config>, G2 = Projective<BnG2Config>>>Constants<'_,E> for Bn254Const {
+    fn BP1() -> E::G1 {
+        G1Bn254::generator().into()
+    }
+
+    fn BP2() -> E::G2 {
+        G2Bn254::generator().into()
+    }
+
+    //TODO: change according to draft
+    fn P1() -> E::G1 {
+        G1Bn254::generator() * FrBn254::from(5)
+    }
+
+    //TODO: change according to draft
+    fn P2() -> E::G2 {
+        G2Bn254::generator() * FrBn254::from(7)
+    }
+
+    // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-7
+    const CIPHERSUITE_ID: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_";
+    const SEED_DST: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
+    const GENERATOR_DST: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_DST_";
+    const GENERATOR_SEED: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
+
+}
+
+impl <E: Pairing<G1 = Projective<BlsG1Config>, G2 = Projective<BlsG2Config>>>Constants<'_,E> for Bls12381Const {
+    fn BP1() -> E::G1 {
+        G1Bls12_381::generator().into()
+    }
+
+    fn BP2() -> E::G2 {
+        G2Bls12_381::generator().into()
+    }
+
+    //TODO: change according to draft
+    fn P1() -> E::G1 {
+        G1Bls12_381::generator() * FrBls12_381::from(5)
+    }
+
+    //TODO: change according to draft
+    fn P2() -> E::G2 {
+        G2Bls12_381::generator() * FrBls12_381::from(7)
+    }
+
+
+    // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-7
+    const CIPHERSUITE_ID: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_";
+    const SEED_DST: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
+    const GENERATOR_DST: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_DST_";
+    const GENERATOR_SEED: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
+
+}

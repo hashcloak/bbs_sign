@@ -15,7 +15,7 @@ pub trait FromOkm<const L: usize, F: Field>: Sized {
     fn from_okm(data: &[u8; L]) -> Self;
 }
 
-impl<const L: usize, F: Field> FromOkm<L, F> for Fr {
+impl<const L: usize> FromOkm<L, Fr> for Fr {
     fn from_okm(data: &[u8; L]) -> Self {
         let p = BigUint::from_bytes_be(
             &hex::decode("30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001")
@@ -30,7 +30,7 @@ impl<const L: usize, F: Field> FromOkm<L, F> for Fr {
 }
 
 #[allow(non_snake_case)]
-impl<const L: usize, F: Field> FromOkm<L, F> for FrBls12_381 {
+impl<const L: usize> FromOkm<L, FrBls12_381> for FrBls12_381 {
     fn from_okm(data: &[u8; L]) -> Self {
 
         const F_2_192_BIG_INT: BigInt<4> = BigInt::new([
@@ -84,7 +84,7 @@ pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
         .chain_update([dst.len() as u8])
         .finalize();
 
-    let mut buf = [0u8; 4 * 48];
+    let mut buf = vec![0u8; len_in_bytes];
     let mut offset = 0;
 
     for i in 1..ell {

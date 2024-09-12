@@ -33,20 +33,20 @@ where
     dom_octs.extend_from_slice(&l.to_be_bytes());
 
     let mut compressed_bytes = Vec::new();
-    q_1.serialize_compressed(&mut compressed_bytes).unwrap();
+    q_1.serialize_uncompressed(&mut compressed_bytes).unwrap();
     dom_octs.extend_from_slice(&compressed_bytes);
 
     for h in h_points {
 
         let mut compressed_bytes = Vec::new();
-        h.serialize_compressed(&mut compressed_bytes).unwrap();
+        h.serialize_uncompressed(&mut compressed_bytes).unwrap();
         dom_octs.extend_from_slice(&compressed_bytes);
     }
 
     dom_octs.extend_from_slice(api_id);
     
     let mut compressed_bytes = Vec::new();
-    pk.serialize_compressed(&mut compressed_bytes).unwrap();
+    pk.serialize_uncompressed(&mut compressed_bytes).unwrap();
 
     let mut dom_input = Vec::new();
     dom_input.extend_from_slice(&compressed_bytes);

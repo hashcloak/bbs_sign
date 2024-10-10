@@ -246,7 +246,7 @@ where
     for i in 0..disclosed_indexes.len(){
 
         let mut compressed_bytes = Vec::new();
-        disclosed_messages[i].serialize_compressed(&mut compressed_bytes).unwrap();
+        disclosed_messages[i].serialize_uncompressed(&mut compressed_bytes).unwrap();
 
         serialize_bytes.extend_from_slice(&disclosed_indexes[i].to_be_bytes());
         serialize_bytes.extend_from_slice(&compressed_bytes);
@@ -255,13 +255,13 @@ where
     for points in init_res.points.iter() {
         
         let mut compressed_bytes = Vec::new();
-        points.serialize_compressed(&mut compressed_bytes).unwrap();
+        points.serialize_uncompressed(&mut compressed_bytes).unwrap();
 
         serialize_bytes.extend_from_slice(&compressed_bytes);
     }
 
     let mut compressed_bytes = Vec::new();
-    init_res.scalar.serialize_compressed(&mut compressed_bytes).unwrap();
+    init_res.scalar.serialize_uncompressed(&mut compressed_bytes).unwrap();
 
     serialize_bytes.extend_from_slice(&compressed_bytes);
 

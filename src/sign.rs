@@ -73,10 +73,10 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
         let hash_to_scalar_dst = [api_id, b"H2S_"].concat();
 
         let mut sk_compressed_bytes = Vec::new();
-        self.serialize_compressed(&mut sk_compressed_bytes).unwrap();
+        self.serialize_uncompressed(&mut sk_compressed_bytes).unwrap();
 
         let mut domain_compressed_bytes: Vec<u8> = Vec::new();
-        domain.serialize_compressed(&mut domain_compressed_bytes).unwrap();
+        domain.serialize_uncompressed(&mut domain_compressed_bytes).unwrap();
 
         let mut serialize_bytes = Vec::new();
         serialize_bytes.extend_from_slice(&sk_compressed_bytes);
@@ -84,7 +84,7 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
         for msg in messages {
 
             let mut msg_serialize_bytes = Vec::new();
-            let _ = msg.serialize_compressed(&mut msg_serialize_bytes);
+            let _ = msg.serialize_uncompressed(&mut msg_serialize_bytes);
             serialize_bytes.extend_from_slice(msg_serialize_bytes.as_slice());
         }
 

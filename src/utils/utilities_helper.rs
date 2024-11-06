@@ -33,26 +33,13 @@ impl<const L: usize> FromOkm<L, Fr> for Fr {
 impl<const L: usize> FromOkm<L, FrBls12_381> for FrBls12_381 {
     fn from_okm(data: &[u8; L]) -> Self {
 
-        const F_2_192_BIG_INT: BigInt<4> = BigInt::new([
-            0x59476ebc41b4528fu64,
-            0xc5a30cb243fcc152u64,
-            0x2b34e63940ccbd72u64,
-            0x1e179025ca247088u64,
-        ]);
-
-        let F_2_192 = FrBls12_381::new(F_2_192_BIG_INT);
-        
-        let mut elm_array = [0u8; 32];
-        elm_array[8..].copy_from_slice(data[0..24].as_ref());
-
-        let mut elm = FrBls12_381::from_be_bytes_mod_order(&elm_array);
-        elm = elm * F_2_192;
-        
-        let mut elm_array = [0u8; 32];
-        elm_array[8..].copy_from_slice(data[24..48].as_ref());
-        let elm2 = FrBls12_381::from_be_bytes_mod_order(&elm_array);
-
-        elm + elm2
+        let p = BigUint::from_bytes_be(
+            &hex::decode("73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFF00000001")
+                .unwrap(),
+        );
+        let mut x = BigUint::from_bytes_be(&data[..]);
+            x = x.mod_floor(&p);
+            FrBls12_381::from(x)
     }
 }
 

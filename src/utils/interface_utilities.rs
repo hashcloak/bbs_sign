@@ -9,8 +9,7 @@ use ark_bls12_381::{
 };
 use ark_bn254::g1::Config as BnConfig;
 use bls12_381::{
-    hash_to_curve::{ExpandMsgXmd, HashToCurve},
-    G1Affine, G1Projective,
+    hash_to_curve::{ExpandMsgXmd, HashToCurve}, Bls12, G1Affine, G1Projective
 };
 use sha2::Sha256;
 
@@ -68,7 +67,7 @@ where
 
         let mut msg = Vec::<u8>::with_capacity(v.len() + 8);
         msg.extend_from_slice(&v);
-        msg.extend_from_slice(&i.to_be_bytes());
+        msg.extend_from_slice(&(i+1).to_be_bytes());
 
         v = expand_message(&msg, seed_dst.as_slice(), 48);
 
@@ -90,4 +89,49 @@ where
     }
 
     msg_scalars
+}
+
+#[test]
+fn test_msg_to_scalars_testvector() {
+    use ark_bls12_381::Fr;
+    use ark_serialize::CanonicalSerialize;
+
+    let dst = hex::decode("4242535f424c53313233383147315f584d443a5348412d3235365f535357555f524f5f4832475f484d32535f4d41505f4d53475f544f5f5343414c41525f41535f484153485f").unwrap();
+    let msg = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02").unwrap();
+    let msg_scalar: Fr = hash_to_scalar::<48, Fr>(&msg, &dst);
+
+    let mut msg_scalar_bytes = Vec::new();
+    msg_scalar.serialize_compressed(&mut msg_scalar_bytes).unwrap();
+
+    // probably the arkworks serealization is reversed
+    msg_scalar_bytes.reverse();
+
+    let expected_msg_scalar_bytes = hex::decode("1cb5bb86114b34dc438a911617655a1db595abafac92f47c5001799cf624b430").unwrap();
+
+    assert_eq!(msg_scalar_bytes, expected_msg_scalar_bytes);
+}
+
+#[test]
+fn test_create_generators_testvector() {
+    use ark_bls12_381::Bls12_381;
+    use ark_serialize::CanonicalSerialize;
+    use ark_ec::CurveGroup;
+
+    let generators = create_generators::<Bls12_381, HashToG1Bls12381>(11, b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_");
+
+    let generator_0 = generators[0];
+
+    let mut generator_0_bytes = Vec::new();
+    generator_0.into_affine().serialize_compressed(&mut generator_0_bytes).unwrap();
+
+    let expected_generator0_bytes = hex::decode("a9ec65b70a7fbe40c874c9eb041c2cb0a7af36ccec1bea48fa2ba4c2eb67ef7f9ecb17ed27d38d27cdeddff44c8137be").unwrap();
+    assert_eq!(expected_generator0_bytes, generator_0_bytes);
+
+    let generator_1 = generators[1];
+
+    let mut generator_1_bytes = Vec::new();
+    generator_1.into_affine().serialize_compressed(&mut generator_1_bytes).unwrap();
+
+    let expected_generator1_bytes = hex::decode("98cd5313283aaf5db1b3ba8611fe6070d19e605de4078c38df36019fbaad0bd28dd090fd24ed27f7f4d22d5ff5dea7d4").unwrap();
+    assert_eq!(expected_generator1_bytes, generator_1_bytes);
 }

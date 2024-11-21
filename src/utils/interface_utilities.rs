@@ -9,7 +9,7 @@ use ark_bls12_381::{
 };
 use ark_bn254::g1::Config as BnConfig;
 use bls12_381::{
-    hash_to_curve::{ExpandMsgXmd, HashToCurve}, Bls12, G1Affine, G1Projective
+    hash_to_curve::{ExpandMsgXmd, HashToCurve}, G1Affine, G1Projective
 };
 use sha2::Sha256;
 
@@ -134,4 +134,42 @@ fn test_create_generators_testvector() {
 
     let expected_generator1_bytes = hex::decode("98cd5313283aaf5db1b3ba8611fe6070d19e605de4078c38df36019fbaad0bd28dd090fd24ed27f7f4d22d5ff5dea7d4").unwrap();
     assert_eq!(expected_generator1_bytes, generator_1_bytes);
+
+    let generator_2 = generators[2];
+
+    let mut generator_2_bytes = Vec::new();
+    generator_2.into_affine().serialize_compressed(&mut generator_2_bytes).unwrap();
+
+    let expected_generator2_bytes = hex::decode("a31fbe20c5c135bcaa8d9fc4e4ac665cc6db0226f35e737507e803044093f37697a9d452490a970eea6f9ad6c3dcaa3a").unwrap();
+    assert_eq!(expected_generator2_bytes, generator_2_bytes);
+
+    let generator_10 = generators[10];
+
+    let mut generator_10_bytes = Vec::new();
+    generator_10.into_affine().serialize_compressed(&mut generator_10_bytes).unwrap();
+
+    let expected_generator10_bytes = hex::decode("a1f229540474f4d6f1134761b92b788128c7ac8dc9b0c52d59493132679673032ac7db3fb3d79b46b13c1c41ee495bca").unwrap();
+    assert_eq!(expected_generator10_bytes, generator_10_bytes);
+
+}
+
+#[test]
+fn test_msg_to_scalar_testvector() {
+    use ark_serialize::CanonicalSerialize;
+    use ark_bls12_381::Bls12_381;
+    
+    let msg = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02").unwrap();
+    let dst = hex::decode("4242535f424c53313233383147315f584d443a5348412d3235365f535357555f524f5f4832475f484d32535f4d41505f4d53475f544f5f5343414c41525f41535f484153485f").unwrap();
+
+    let scalar = msg_to_scalars::<Bls12_381, ark_bls12_381::Fr, 48>(&[&msg], &dst);
+
+    let mut compressed_bytes: Vec<u8> = Vec::new();
+    scalar[0].serialize_uncompressed(&mut compressed_bytes).unwrap();
+
+    let expected_scalar_bytes = hex::decode("1cb5bb86114b34dc438a911617655a1db595abafac92f47c5001799cf624b430").unwrap();
+
+    // probably the arkworks serealization is reversed
+    compressed_bytes.reverse();
+    assert_eq!(compressed_bytes, expected_scalar_bytes);
+    
 }

@@ -1,5 +1,5 @@
 use ark_bn254::Fr;
-use ark_ff::{Field, PrimeField, BigInt};
+use ark_ff::Field;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use sha2::{Sha256, digest::Digest};

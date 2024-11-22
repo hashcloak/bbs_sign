@@ -2,7 +2,7 @@ use ark_ff::fields::Field;
 use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
 use thiserror::Error;
 use elliptic_curve::ops::Mul;
-use ark_ec::pairing::Pairing;
+use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
 
 use crate::{
     key_gen::SecretKey,
@@ -70,6 +70,12 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
         let public_key = &self.sk_to_pk();
         let domain = calculate_domain::<E, F, 48>(public_key, generators[0], &generators[1..], header, api_id);
 
+        // let mut domain_bytes = Vec::new();
+        // domain.serialize_compressed(&mut domain_bytes).unwrap();
+        // domain_bytes.reverse();
+        // let expected_domain = hex::decode("25d57fab92a8274c68fde5c3f16d4b275e4a156f211ae34b3ab32fbaf506ed5c").unwrap();
+        // assert_eq!(domain_bytes, expected_domain);
+
         let hash_to_scalar_dst = [api_id, b"H2S_"].concat();
 
         let mut sk_compressed_bytes = Vec::new();
@@ -95,7 +101,7 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
 
         let e = hash_to_scalar(serialize_bytes.as_slice(), hash_to_scalar_dst.as_slice());
 
-        let mut b: E::G1 = C::P1();
+        let mut b = C::P1();
 
         b = b + generators[0] * domain;
 
@@ -130,7 +136,10 @@ fn test_sign_testvector() {
     use ark_serialize::CanonicalSerialize;
 
     let m_1 = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02").unwrap();
-    let sk = SecretKey::<Fr>::from(key_gen::SecretKey { sk: Fr::from_str("43827200940696190687007874407982393189563963510129946831635449820772190743036").unwrap() });
+    let mut key_material = hex::decode("746869732d49532d6a7573742d616e2d546573742d494b4d2d746f2d67656e65726174652d246528724074232d6b6579").unwrap();
+    let key_info = hex::decode("746869732d49532d736f6d652d6b65792d6d657461646174612d746f2d62652d757365642d696e2d746573742d6b65792d67656e").unwrap();
+    let key_dst = hex::decode("4242535f424c53313233383147315f584d443a5348412d3235365f535357555f524f5f4832475f484d32535f4b455947454e5f4453545f").unwrap();
+    let sk = SecretKey::<Fr>::key_gen::<Bls12_381>(&mut key_material.as_mut_slice(), key_info.as_slice(), key_dst.as_slice()).unwrap();
     let pk: key_gen::PublicKey<Bls12_381> = SecretKey::sk_to_pk(&sk);
 
     let mut compressed_bytes = Vec::new();

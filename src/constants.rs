@@ -14,7 +14,6 @@ use ark_ec::{
     short_weierstrass::Projective
 };
 use ark_serialize::CanonicalDeserialize;
-use std::str::FromStr;
 
 #[allow(non_snake_case)]
 pub trait Constants<'a, E: Pairing> {
@@ -69,7 +68,8 @@ impl <E: Pairing<G1 = Projective<BlsG1Config>, G2 = Projective<BlsG2Config>>>Con
     }
 
     fn P1() -> E::G1 {
-        G1Bls12_381::new(Fq::from_str("1410402537527345635945028702482408516145852363795832124300296631625232096840353922375022004745284014597560052549461").unwrap(), Fq::from_str("1251567760767528906858606613392545933031311346024368470459490474118606852009565951592434442803881561589183987820039").unwrap()).into()
+        let p1_bytes = hex::decode("a8ce256102840821a3e94ea9025e4662b205762f9776b3a766c872b948f1fd225e7c59698588e70d11406d161b4e28c9").unwrap();
+        G1Bls12_381::deserialize_compressed(&*p1_bytes).unwrap().into()
     }
 
     //TODO: change according to draft
@@ -109,7 +109,7 @@ fn test_constants() {
     let p1: G1Affine = <Bls12381Const as Constants<Bls12_381>>::P1().into();
     let mut p1_bytes = Vec::new();
     p1.serialize_compressed(&mut p1_bytes).unwrap();
-    let expected_p1_bytes = hex::decode("8929dfbc7e6642c4ed9cba0856e493f8b9d7d5fcb0c31ef8fdcd34d50648a56c795e106e9eada6e0bda386b414150755").unwrap();
+    let expected_p1_bytes = hex::decode("a8ce256102840821a3e94ea9025e4662b205762f9776b3a766c872b948f1fd225e7c59698588e70d11406d161b4e28c9").unwrap();
 
     assert_eq!(p1_bytes, expected_p1_bytes);
 }

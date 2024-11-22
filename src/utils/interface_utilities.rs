@@ -109,6 +109,15 @@ fn test_msg_to_scalars_testvector() {
     let expected_msg_scalar_bytes = hex::decode("1cb5bb86114b34dc438a911617655a1db595abafac92f47c5001799cf624b430").unwrap();
 
     assert_eq!(msg_scalar_bytes, expected_msg_scalar_bytes);
+
+    let m_10 = hex::decode("").unwrap();
+    let m_10_scalar: Fr = hash_to_scalar::<48, Fr>(&m_10, &dst);
+    let mut m_10_scalar_bytes = Vec::new();
+    m_10_scalar.serialize_compressed(&mut m_10_scalar_bytes).unwrap();
+    m_10_scalar_bytes.reverse();
+    let expected_m10_bytes = hex::decode("08e3afeb2b4f2b5f907924ef42856616e6f2d5f1fb373736db1cca32707a7d16").unwrap();
+    assert_eq!(m_10_scalar_bytes, expected_m10_bytes);
+
 }
 
 #[test]

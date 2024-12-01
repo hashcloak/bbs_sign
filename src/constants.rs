@@ -6,7 +6,7 @@ use ark_bn254::{
     g2::Config as BnG2Config
 };
 use ark_bls12_381::{
-    g1::Config as BlsG1Config, g2::Config as BlsG2Config, Fq, Fr as FrBls12_381, G1Affine as G1Bls12_381, G1Projective, G2Affine as G2Bls12_381
+    g1::Config as BlsG1Config, g2::Config as BlsG2Config, Fr as FrBls12_381, G1Affine as G1Bls12_381, G2Affine as G2Bls12_381
 };
 use ark_ec::{
     AffineRepr, 

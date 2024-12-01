@@ -2,7 +2,7 @@ use ark_ff::fields::Field;
 use ark_serialize::{ CanonicalSerialize, CanonicalDeserialize };
 use thiserror::Error;
 use elliptic_curve::ops::Mul;
-use ark_ec::{pairing::Pairing, AffineRepr, CurveGroup};
+use ark_ec::pairing::Pairing;
 
 use crate::{
     key_gen::SecretKey,
@@ -109,13 +109,6 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
             b = b + generators[i] * messages[i - 1];
         }
 
-        // TODO: Remove after fixing
-        // use ark_ec::CurveGroup;
-        // let expected_b_bytes = hex::decode("92d264aed02bf23de022ebe778c4f929fddf829f504e451d011ed89a313b8167ac947332e1648157ceffc6e6e41ab255").unwrap();   
-        // let mut b_bytes = Vec::new();
-        // b.into_affine().serialize_compressed(&mut b_bytes).unwrap();
-        // assert_eq!(b_bytes, expected_b_bytes);
-
         let sk_plus_e: F = self.sk + e;
         let sk_plus_e_inverse:  F = sk_plus_e.inverse().unwrap();
         let a: E::G1 = b * sk_plus_e_inverse;
@@ -129,7 +122,6 @@ impl < F: Field+ FromOkm<48, F>>SecretKey<F> {
 fn test_sign_testvector() {
     use ark_bls12_381::{Fr, Bls12_381};
     use crate::key_gen;
-    use std::str::FromStr;
     use ark_ec::CurveGroup;
     use crate::constants::Bls12381Const;
     use crate::utils::interface_utilities::HashToG1Bls12381;
@@ -152,10 +144,16 @@ fn test_sign_testvector() {
 
     let signature = sk.sign::<Bls12_381, Bls12381Const, HashToG1Bls12381>(&[m_1.as_slice()], &header).unwrap();
 
-    let mut compressed_bytes: Vec<u8> = Vec::new();
-    signature.e.serialize_compressed(&mut compressed_bytes).unwrap();
+    let mut a_compressed_bytes: Vec<u8> = Vec::new();
+    signature.a.serialize_compressed(&mut a_compressed_bytes).unwrap();
 
+    let mut e_compressed_bytes: Vec<u8> = Vec::new();
+    signature.e.serialize_compressed(&mut e_compressed_bytes).unwrap();
+    e_compressed_bytes.reverse();
+
+    // full sig hex bytes (A,e)
+    a_compressed_bytes.extend_from_slice(&e_compressed_bytes);
     let expected_sig_bytes = hex::decode("84773160b824e194073a57493dac1a20b667af70cd2352d8af241c77658da5253aa8458317cca0eae615690d55b1f27164657dcafee1d5c1973947aa70e2cfbb4c892340be5969920d0916067b4565a0").unwrap();
-    // assert_eq!(compressed_bytes, expected_sig_bytes);
+    assert_eq!(a_compressed_bytes, expected_sig_bytes);
 
 }

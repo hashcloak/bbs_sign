@@ -84,8 +84,9 @@ where
     F: Field + FromOkm<L, F>, 
 {
     let mut msg_scalars = Vec::new();
+    let map_dst = [api_id, b"MAP_MSG_TO_SCALAR_AS_HASH_"].concat();
     for &msg in messages {
-        msg_scalars.push(hash_to_scalar(msg, api_id));
+        msg_scalars.push(hash_to_scalar(msg, map_dst.as_slice()));
     }
 
     msg_scalars
@@ -168,9 +169,8 @@ fn test_msg_to_scalar_testvector() {
     use ark_bls12_381::Bls12_381;
     
     let msg = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02").unwrap();
-    let dst = hex::decode("4242535f424c53313233383147315f584d443a5348412d3235365f535357555f524f5f4832475f484d32535f4d41505f4d53475f544f5f5343414c41525f41535f484153485f").unwrap();
-
-    let scalar = msg_to_scalars::<Bls12_381, ark_bls12_381::Fr, 48>(&[&msg], &dst);
+    let api_id = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_";
+    let scalar = msg_to_scalars::<Bls12_381, ark_bls12_381::Fr, 48>(&[&msg], &api_id.as_slice());
 
     let mut compressed_bytes: Vec<u8> = Vec::new();
     scalar[0].serialize_uncompressed(&mut compressed_bytes).unwrap();

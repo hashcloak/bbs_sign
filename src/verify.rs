@@ -51,7 +51,7 @@ impl <E: Pairing>PublicKey<E> {
 
         let domain = calculate_domain::<E, F, 48>(self, generators[0], &generators[1..], header, api_id);
 
-        let mut b: E::G1 = C::BP1();
+        let mut b: E::G1 = C::P1();
         b = b + generators[0] * domain;
 
         for i in 1..generators.len() {

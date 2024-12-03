@@ -78,6 +78,31 @@ where
     result
 }
 
+// for testing only
+pub fn seeded_random_scalars<const L: usize, F>(seed: &[u8], dst: &[u8], count: usize) -> Vec<F> 
+where 
+    F: Field + FromOkm<L, F>
+{
+    let out_len = L * count;
+    let v = expand_message(seed, dst, out_len);
+    let mut result = Vec::with_capacity(count);
+
+    for i in 0..count {
+        let start_idx = L * i;
+        let end_idx = (i+1) * L;
+        let r_i: &[u8; L] = &v[start_idx..end_idx].try_into().unwrap();
+        let scalar = F::from_okm(r_i);
+        result.push(scalar);
+    }
+    result
+}
+
+// for testing only
+pub fn mocked_calculate_random_scalars<F: Field + FromOkm<48, F>>(count: usize) -> Vec<F> {
+    // let api_id = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_".as_slice();
+    let dst = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_MOCK_RANDOM_SCALARS_DST_".as_slice();
+    seeded_random_scalars::<48, F>(hex::decode("332e313431353932363533353839373933323338343632363433333833323739").unwrap().as_slice(), &dst, count)
+}
 
 #[test]
 fn test_hash_to_scalar_testvector() {
@@ -123,4 +148,20 @@ fn test_calculate_domain_testvector() {
     domain.serialize_uncompressed(&mut compressed_bytes).unwrap();
     compressed_bytes.reverse();
     assert_eq!(compressed_bytes, expected_domain_bytes);
+}
+
+#[test]
+fn test_mocked_calculate_random_scalars_testvector() {
+    let scalars = mocked_calculate_random_scalars::<ark_bls12_381::Fr>(10);
+    let expected_scalar_bytes = hex::decode("04f8e2518993c4383957ad14eb13a023c4ad0c67d01ec86eeb902e732ed6df3f").unwrap();
+    let mut compressed_bytes: Vec<u8> = Vec::new();
+    scalars[0].serialize_compressed(&mut compressed_bytes).unwrap();
+    compressed_bytes.reverse();
+    assert_eq!(compressed_bytes, expected_scalar_bytes);
+
+    let expected_scalar_bytes = hex::decode("485e2adab17b76f5334c95bf36c03ccf91cef77dcfcdc6b8a69e2090b3156663").unwrap();
+    let mut compressed_bytes: Vec<u8> = Vec::new();
+    scalars[9].serialize_compressed(&mut compressed_bytes).unwrap();
+    compressed_bytes.reverse();
+    assert_eq!(compressed_bytes, expected_scalar_bytes);
 }

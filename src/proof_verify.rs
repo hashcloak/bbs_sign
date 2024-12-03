@@ -114,7 +114,7 @@ where
     let domain = calculate_domain::<E, F, 48>(&pk, generators[0], &generators[1..], header, api_id);
 
     let t1 = proof.b_bar * proof.challenge.scalar + proof.a_bar * proof.e_cap + proof.d * proof.r1_cap;
-    let mut bv = C::BP1() + generators[0] * domain;
+    let mut bv = C::P1() + generators[0] * domain;
 
     let msg_generators = generators[1..].to_vec();
 

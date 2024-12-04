@@ -1,32 +1,20 @@
-use zeroize::{Zeroize, ZeroizeOnDrop};
-use digest::generic_array::{
-    GenericArray, 
-    typenum::U48
-};
-use ark_serialize::{ 
-    CanonicalSerialize, 
-    CanonicalDeserialize 
-};
-use thiserror::Error;
+use ark_ec::{pairing::Pairing, Group};
 use ark_ff::Field;
-use ark_ec::{
-    pairing::Pairing, 
-    Group
-};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use digest::generic_array::{typenum::U48, GenericArray};
 use elliptic_curve::ops::Mul;
+use thiserror::Error;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::utils::{
-    core_utilities::hash_to_scalar,
-    utilities_helper::FromOkm,
-};
+use crate::utils::{core_utilities::hash_to_scalar, utilities_helper::FromOkm};
 
 // Public Key
-#[derive(Debug,CanonicalDeserialize, CanonicalSerialize, Clone)]
-pub struct PublicKey<E: Pairing>{
-    pub pk: E::G2
+#[derive(Debug, CanonicalDeserialize, CanonicalSerialize, Clone)]
+pub struct PublicKey<E: Pairing> {
+    pub pk: E::G2,
 }
 
-impl<E: Pairing> Default for PublicKey<E> 
+impl<E: Pairing> Default for PublicKey<E>
 where
     E::G2: Default,
 {
@@ -39,7 +27,7 @@ where
 
 // Secret Key
 #[derive(Debug, Default, Zeroize, ZeroizeOnDrop, CanonicalDeserialize, CanonicalSerialize)]
-pub struct SecretKey<F: Field>{
+pub struct SecretKey<F: Field> {
     pub sk: F,
 }
 
@@ -51,18 +39,19 @@ pub enum KeyGenError {
     InvalidKeyInfoLength,
     #[error("Generated secret key is invalid (zero scalar).")]
     InvalidSecretKey,
-    
 }
 
-impl <F: Field>SecretKey<F> {
-
+impl<F: Field> SecretKey<F> {
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-secret-key
-    pub fn key_gen<E>(key_material: &mut [u8], key_info: &[u8],key_dst: &[u8]) -> Result<Self, KeyGenError> 
-    
+    pub fn key_gen<E>(
+        key_material: &mut [u8],
+        key_info: &[u8],
+        key_dst: &[u8],
+    ) -> Result<Self, KeyGenError>
     where
-    E: Pairing,
-    F: Field + FromOkm<48, F>,{
-
+        E: Pairing,
+        F: Field + FromOkm<48, F>,
+    {
         if key_material.len() < 32 {
             return Err(KeyGenError::InvalidKeyMaterialLength);
         }
@@ -87,26 +76,25 @@ impl <F: Field>SecretKey<F> {
             return Err(KeyGenError::InvalidSecretKey);
         }
 
-        Ok(SecretKey{
-            sk
-        })
+        Ok(SecretKey { sk })
     }
 
-    pub fn sk_to_pk<E: Pairing>(&self) -> PublicKey<E> 
-    where 
-    E::G2: Mul<F, Output = E::G2>, 
+    pub fn sk_to_pk<E: Pairing>(&self) -> PublicKey<E>
+    where
+        E::G2: Mul<F, Output = E::G2>,
     {
-        PublicKey{
-            pk: (E::G2::generator() * self.sk)}
+        PublicKey {
+            pk: (E::G2::generator() * self.sk),
+        }
     }
 
     // TODO: may not be required. `key_gen` implements the generation of secret key according to the spec
     // https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-bls-signature-05#name-keygen
     // https://github.com/mattrglobal/bbs-signatures/blob/e0ae711ce8da425d671c748201106a5d1bf2bd5b/src/bls12381.rs#L354
-    pub fn gen_sk<E>(msg: &[u8]) -> Self 
+    pub fn gen_sk<E>(msg: &[u8]) -> Self
     where
-    E: Pairing,
-    F: Field + FromOkm<48, F>,
+        E: Pairing,
+        F: Field + FromOkm<48, F>,
     {
         const SALT: &[u8] = b"BBS-SIG-KEYGEN-SALT-";
         // copy of `msg` with appended zero byte
@@ -118,22 +106,22 @@ impl <F: Field>SecretKey<F> {
         assert!(hkdf::Hkdf::<sha2::Sha256>::new(Some(SALT), &msg_prime[..])
             .expand(&[0, 48], &mut result)
             .is_ok());
-        let result_array: [u8;48] = result.as_slice().try_into().expect("wrong length!");
-        
-        Self{sk: F::from_okm(&result_array)}
-    }
+        let result_array: [u8; 48] = result.as_slice().try_into().expect("wrong length!");
 
+        Self {
+            sk: F::from_okm(&result_array),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::key_gen::SecretKey;
-    use zeroize::Zeroize;
-    use ark_bn254::Fr;
-    use ark_bn254::Bn254;
     use crate::key_gen::PublicKey;
+    use crate::key_gen::SecretKey;
     use ark_bls12_381::{Bls12_381, Fr as FrBls12_381};
-
+    use ark_bn254::Bn254;
+    use ark_bn254::Fr;
+    use zeroize::Zeroize;
 
     #[test]
     fn test_key_gen() {
@@ -142,8 +130,10 @@ mod tests {
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
         // key_info and key_dst are optional
-        let sk1: SecretKey<Fr> = SecretKey::key_gen::<Bn254>(&mut key_material1, &[], key_dst.as_slice()).unwrap();
-        let sk2: SecretKey<Fr> = SecretKey::key_gen::<Bn254>(&mut key_material2, &[], key_dst.as_slice()).unwrap();
+        let sk1: SecretKey<Fr> =
+            SecretKey::key_gen::<Bn254>(&mut key_material1, &[], key_dst.as_slice()).unwrap();
+        let sk2: SecretKey<Fr> =
+            SecretKey::key_gen::<Bn254>(&mut key_material2, &[], key_dst.as_slice()).unwrap();
         let pk1: PublicKey<Bn254> = SecretKey::sk_to_pk(&sk1);
         let pk2: PublicKey<Bn254> = SecretKey::sk_to_pk(&sk2);
 
@@ -164,9 +154,10 @@ mod tests {
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
         // key_info and key_dst are optional
-        let mut sk: SecretKey<Fr> = SecretKey::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice()).unwrap();
+        let mut sk: SecretKey<Fr> =
+            SecretKey::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice()).unwrap();
         let _: PublicKey<Bn254> = SecretKey::sk_to_pk(&sk);
-        
+
         // zeroize the secret key after generating public key
         sk.zeroize();
 
@@ -177,21 +168,24 @@ mod tests {
 
     #[test]
     fn test_invalid_key_gen() {
-
         // key_material length should be at least 32
         let mut key_material = [1u8; 30];
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
         // key_info and key_dst are optional
-        let sk1: Result<SecretKey<Fr>, crate::key_gen::KeyGenError> = SecretKey::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice());
+        let sk1: Result<SecretKey<Fr>, crate::key_gen::KeyGenError> =
+            SecretKey::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice());
         assert!(sk1.is_err());
-
 
         let mut key_material = [1u8; 32];
         // key_info should be at most 65535
         let key_info_arr = [1u8; 65536];
 
-        let sk1: Result<SecretKey<Fr>, crate::key_gen::KeyGenError> = SecretKey::key_gen::<Bn254>(&mut key_material, key_info_arr.as_slice(), key_dst.as_slice());
+        let sk1: Result<SecretKey<Fr>, crate::key_gen::KeyGenError> = SecretKey::key_gen::<Bn254>(
+            &mut key_material,
+            key_info_arr.as_slice(),
+            key_dst.as_slice(),
+        );
         assert!(sk1.is_err());
     }
 
@@ -202,8 +196,10 @@ mod tests {
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
         // key_info and key_dst are optional
-        let sk1: SecretKey<FrBls12_381> = SecretKey::key_gen::<Bls12_381>(&mut key_material1, &[], key_dst.as_slice()).unwrap();
-        let sk2: SecretKey<FrBls12_381> = SecretKey::key_gen::<Bls12_381>(&mut key_material2, &[], key_dst.as_slice()).unwrap();
+        let sk1: SecretKey<FrBls12_381> =
+            SecretKey::key_gen::<Bls12_381>(&mut key_material1, &[], key_dst.as_slice()).unwrap();
+        let sk2: SecretKey<FrBls12_381> =
+            SecretKey::key_gen::<Bls12_381>(&mut key_material2, &[], key_dst.as_slice()).unwrap();
         let pk1: PublicKey<Bls12_381> = SecretKey::sk_to_pk(&sk1);
         let pk2: PublicKey<Bls12_381> = SecretKey::sk_to_pk(&sk2);
 

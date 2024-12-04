@@ -9,20 +9,19 @@ mod tests {
         key_gen::{PublicKey, SecretKey},
         utils::interface_utilities::{create_generators, HashToG1Bn254},
     };
-    
-    fn generate_key() -> (SecretKey<Fr>, PublicKey<Bn254>){
 
+    fn generate_key() -> (SecretKey<Fr>, PublicKey<Bn254>) {
         let mut key_material = [1u8; 32];
         let key_dst = b"BBS-SIG-KEYGEN-SALT-";
 
-        let sk = SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice()).unwrap();
+        let sk =
+            SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst.as_slice()).unwrap();
         let pk = SecretKey::sk_to_pk(&sk);
 
         (sk, pk)
     }
 
     fn generate_random_msg(n: usize) -> Vec<Fr> {
-        
         let mut messages = Vec::new();
         let mut rng = rand::thread_rng();
 
@@ -44,20 +43,28 @@ mod tests {
     #[test_case(10, b"", b"def")]
     #[test_case(10, b"abc", b"")]
     fn test_core_sign_and_verify(count: usize, api_id: &[u8], header: &[u8]) {
-
         let (sk, pk) = generate_key();
 
         // random messages: Vector of Fr
         let messages = generate_random_msg(count);
-        let generators = create_generators::<Bn254, HashToG1Bn254>(count+1, api_id);
+        let generators = create_generators::<Bn254, HashToG1Bn254>(count + 1, api_id);
 
-        let signature = sk.core_sign::<Bn254, Bn254Const>(generators.as_slice(), header, &messages, api_id).unwrap();
-        assert!(pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        let signature = sk
+            .core_sign::<Bn254, Bn254Const>(generators.as_slice(), header, &messages, api_id)
+            .unwrap();
+        assert!(pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                signature,
+                generators.as_slice(),
+                header,
+                &messages,
+                api_id
+            )
+            .unwrap());
     }
 
     #[test]
     fn test_invalid_signature() {
-
         let count = 10;
         let api_id = b"";
         let header = b"";
@@ -66,34 +73,83 @@ mod tests {
 
         // random messages: Vector of Fr
         let messages = generate_random_msg(count);
-        let generators = create_generators::<Bn254, HashToG1Bn254>(count+1, api_id);
+        let generators = create_generators::<Bn254, HashToG1Bn254>(count + 1, api_id);
 
-        let signature = sk.core_sign::<Bn254, Bn254Const>(generators.as_slice(), header, &messages, api_id).unwrap();
+        let signature = sk
+            .core_sign::<Bn254, Bn254Const>(generators.as_slice(), header, &messages, api_id)
+            .unwrap();
 
         // valid signature verification
-        assert!(pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(signature, generators.as_slice(), header, &messages, api_id).unwrap());
-        
+        assert!(pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                signature,
+                generators.as_slice(),
+                header,
+                &messages,
+                api_id
+            )
+            .unwrap());
+
         // forged signature
         let mut forged_signature = signature.clone();
         forged_signature.a = G1::identity().into();
-        assert!(!pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(forged_signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        assert!(!pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                forged_signature,
+                generators.as_slice(),
+                header,
+                &messages,
+                api_id
+            )
+            .unwrap());
 
         // forged api_id
         let forged_api_id = b"abc";
-        assert!(!pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(signature, generators.as_slice(), header, &messages, forged_api_id).unwrap());
+        assert!(!pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                signature,
+                generators.as_slice(),
+                header,
+                &messages,
+                forged_api_id
+            )
+            .unwrap());
 
         // forged header
         let forged_header = b"abc";
-        assert!(!pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(signature, generators.as_slice(), forged_header, &messages, api_id).unwrap());
+        assert!(!pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                signature,
+                generators.as_slice(),
+                forged_header,
+                &messages,
+                api_id
+            )
+            .unwrap());
 
         // forged public key
         let forged_pk: PublicKey<Bn254> = PublicKey::<Bn254>::default();
-        assert!(!forged_pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(signature, generators.as_slice(), header, &messages, api_id).unwrap());
+        assert!(!forged_pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                signature,
+                generators.as_slice(),
+                header,
+                &messages,
+                api_id
+            )
+            .unwrap());
 
         // forged messages
         let mut forged_messages = messages.clone();
         forged_messages[0] = Fr::from(0);
-        assert!(!pk.core_verify::<Fr, Bn254Const, HashToG1Bn254>(signature, generators.as_slice(), header, &forged_messages, api_id).unwrap());
-
+        assert!(!pk
+            .core_verify::<Fr, Bn254Const, HashToG1Bn254>(
+                signature,
+                generators.as_slice(),
+                header,
+                &forged_messages,
+                api_id
+            )
+            .unwrap());
     }
 }

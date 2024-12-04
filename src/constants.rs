@@ -1,18 +1,12 @@
-use ark_bn254::{
-    G1Affine as G1Bn254, 
-    G2Affine as G2Bn254,
-    g1::Config as BnG1Config,
-    g2::Config as BnG2Config,
-    Fq as FqBn254
-};
 use ark_bls12_381::{
-    g1::Config as BlsG1Config, g2::Config as BlsG2Config, G1Affine as G1Bls12_381, G2Affine as G2Bls12_381, Fq
+    g1::Config as BlsG1Config, g2::Config as BlsG2Config, Fq, G1Affine as G1Bls12_381,
+    G2Affine as G2Bls12_381,
 };
-use ark_ec::{
-    AffineRepr, 
-    pairing::Pairing, 
-    short_weierstrass::Projective
+use ark_bn254::{
+    g1::Config as BnG1Config, g2::Config as BnG2Config, Fq as FqBn254, G1Affine as G1Bn254,
+    G2Affine as G2Bn254,
 };
+use ark_ec::{pairing::Pairing, short_weierstrass::Projective, AffineRepr};
 use std::str::FromStr;
 
 #[allow(non_snake_case)]
@@ -30,7 +24,9 @@ pub trait Constants<'a, E: Pairing> {
 pub struct Bn254Const;
 pub struct Bls12381Const;
 
-impl <E: Pairing<G1 = Projective<BnG1Config>, G2 = Projective<BnG2Config>>>Constants<'_,E> for Bn254Const {
+impl<E: Pairing<G1 = Projective<BnG1Config>, G2 = Projective<BnG2Config>>> Constants<'_, E>
+    for Bn254Const
+{
     fn BP1() -> E::G1 {
         G1Bn254::generator().into()
     }
@@ -41,18 +37,32 @@ impl <E: Pairing<G1 = Projective<BnG1Config>, G2 = Projective<BnG2Config>>>Const
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-bls12-381-ciphersuites
     fn P1() -> E::G1 {
-        G1Bn254::new(FqBn254::from_str("7738860219269362160002109478394842060990190871738832255540382874922375322334").unwrap(), FqBn254::from_str("8255268479661695615178834896135584953541182794935974658059743263102507888551").unwrap()).into()
+        G1Bn254::new(
+            FqBn254::from_str(
+                "7738860219269362160002109478394842060990190871738832255540382874922375322334",
+            )
+            .unwrap(),
+            FqBn254::from_str(
+                "8255268479661695615178834896135584953541182794935974658059743263102507888551",
+            )
+            .unwrap(),
+        )
+        .into()
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-7
-    const CIPHERSUITE_ID: &'static[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_";
-    const SEED_DST: &'static[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
-    const GENERATOR_DST: &'static[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_SIG_GENERATOR_DST_";
-    const GENERATOR_SEED: &'static[u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
-
+    const CIPHERSUITE_ID: &'static [u8] = b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_";
+    const SEED_DST: &'static [u8] =
+        b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
+    const GENERATOR_DST: &'static [u8] =
+        b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_SIG_GENERATOR_DST_";
+    const GENERATOR_SEED: &'static [u8] =
+        b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
 }
 
-impl <E: Pairing<G1 = Projective<BlsG1Config>, G2 = Projective<BlsG2Config>>>Constants<'_,E> for Bls12381Const {
+impl<E: Pairing<G1 = Projective<BlsG1Config>, G2 = Projective<BlsG2Config>>> Constants<'_, E>
+    for Bls12381Const
+{
     fn BP1() -> E::G1 {
         G1Bls12_381::generator().into()
     }
@@ -66,9 +76,11 @@ impl <E: Pairing<G1 = Projective<BlsG1Config>, G2 = Projective<BlsG2Config>>>Con
     }
 
     // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#section-7
-    const CIPHERSUITE_ID: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_";
-    const SEED_DST: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
-    const GENERATOR_DST: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_DST_";
-    const GENERATOR_SEED: &'static[u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
-
+    const CIPHERSUITE_ID: &'static [u8] = b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_";
+    const SEED_DST: &'static [u8] =
+        b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_SEED_";
+    const GENERATOR_DST: &'static [u8] =
+        b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_SIG_GENERATOR_DST_";
+    const GENERATOR_SEED: &'static [u8] =
+        b"BBS_BLS12381G1_XMD:SHA-256_SSWU_RO_H2G_HM2S_BP_MESSAGE_GENERATOR_SEED";
 }

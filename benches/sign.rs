@@ -1,17 +1,14 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use ark_bn254::{Fr, Bn254};
+use ark_bn254::{Bn254, Fr};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rand::Rng;
 
 use bbs_plus::{
-    key_gen::SecretKey,
-    utils::interface_utilities::HashToG1Bn254,
-    constants::Bn254Const
+    constants::Bn254Const, key_gen::SecretKey, utils::interface_utilities::HashToG1Bn254,
 };
 
 // benchmarking signing on single message with varying message length
 pub fn sign_benchmark_single_msg(c: &mut Criterion) {
-
-    let mut key_material: [u8;32] = [1;32];
+    let mut key_material: [u8; 32] = [1; 32];
     let key_dst = b"BBS-SIG-KEYGEN-SALT-";
     let sk = SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst).unwrap();
 
@@ -19,15 +16,12 @@ pub fn sign_benchmark_single_msg(c: &mut Criterion) {
 
     // message size
     for size in [32, 64, 128, 256, 512, 1024, 2048].iter() {
-
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
+            let mut rng = rand::thread_rng();
+            let msg: Vec<u8> = (0..size).map(|_| rng.gen::<u8>()).collect(); // generating random message
 
-        let mut rng = rand::thread_rng();
-        let msg: Vec<u8> = (0..size).map(|_| rng.gen::<u8>()).collect(); // generating random message
-
-        b.iter(|| sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(black_box(&[&msg]), &[]));
-
+            b.iter(|| sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(black_box(&[&msg]), &[]));
         });
     }
 
@@ -36,8 +30,7 @@ pub fn sign_benchmark_single_msg(c: &mut Criterion) {
 
 // benchmarking signing on multiple messages each of length 32bytes
 pub fn sign_benchmark_multiple_msgs(c: &mut Criterion) {
-
-    let mut key_material: [u8;32] = [1;32];
+    let mut key_material: [u8; 32] = [1; 32];
     let key_dst = b"BBS-SIG-KEYGEN-SALT-";
     let sk = SecretKey::<Fr>::key_gen::<Bn254>(&mut key_material, &[], key_dst).unwrap();
 
@@ -45,23 +38,20 @@ pub fn sign_benchmark_multiple_msgs(c: &mut Criterion) {
 
     // numer of messages
     for size in [1, 2, 4, 8, 16, 32, 64, 128].iter() {
-
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
+            let random_msgs_vecs: Vec<Vec<u8>> = (0..size)
+                .map(|_| {
+                    let mut rng = rand::thread_rng();
+                    // each msg length of 32 bytes
+                    (0..32).map(|_| rng.gen::<u8>()).collect()
+                })
+                .collect();
 
-        let random_msgs_vecs: Vec<Vec<u8>> = (0..size)
-        .map(|_| {
-            let mut rng = rand::thread_rng();
-            // each msg length of 32 bytes
-            (0..32).map(|_| rng.gen::<u8>()).collect()
-        })
-        .collect();
+            let msg_slices: Vec<&[u8]> = random_msgs_vecs.iter().map(|v| v.as_slice()).collect();
+            let msgs: &[&[u8]] = &msg_slices;
 
-        let msg_slices: Vec<&[u8]> = random_msgs_vecs.iter().map(|v| v.as_slice()).collect();
-        let msgs: &[&[u8]] = &msg_slices;
-
-        b.iter(|| sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(black_box(msgs), &[]));
-
+            b.iter(|| sk.sign::<Bn254, Bn254Const, HashToG1Bn254>(black_box(msgs), &[]));
         });
     }
 
@@ -74,4 +64,3 @@ criterion_group! {
     targets = sign_benchmark_single_msg, sign_benchmark_multiple_msgs
 }
 criterion_main!(benches);
-

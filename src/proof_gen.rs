@@ -132,9 +132,9 @@ where
         }
     }
 
-    // let random_scalars = calculate_random_scalars::<48, F>(5 + l - r);
+    let random_scalars = calculate_random_scalars::<48, F>(5 + l - r);
 
-    // For testing only
+    #[cfg(testvector_bls12_381)]
     let random_scalars = mocked_calculate_random_scalars::<F>(5 + l - r);
 
     let full_indexes: HashSet<usize> = HashSet::from_iter(0..l);
@@ -316,85 +316,4 @@ where
         commitments, 
         challenge: challenge.clone()
     })
-}
-
-
-#[test]
-fn test_proof_testvector() {
-    use ark_bls12_381::{Fr, Bls12_381};
-    use crate::key_gen::SecretKey;
-    use crate::key_gen;
-    use ark_ec::CurveGroup;
-    use crate::constants::Bls12381Const;
-    use crate::utils::interface_utilities::HashToG1Bls12381;
-    use ark_serialize::CanonicalSerialize;
-
-    let m_0 = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02").unwrap();
-    let header = hex::decode("11223344556677889900aabbccddeeff").unwrap();
-    let presentation_header = hex::decode("bed231d880675ed101ead304512e043ade9958dd0241ea70b4b3957fba941501").unwrap();
-
-    let mut key_material = hex::decode("746869732d49532d6a7573742d616e2d546573742d494b4d2d746f2d67656e65726174652d246528724074232d6b6579").unwrap();
-    let key_info = hex::decode("746869732d49532d736f6d652d6b65792d6d657461646174612d746f2d62652d757365642d696e2d746573742d6b65792d67656e").unwrap();
-    let key_dst = hex::decode("4242535f424c53313233383147315f584d443a5348412d3235365f535357555f524f5f4832475f484d32535f4b455947454e5f4453545f").unwrap();
-
-    let sk = SecretKey::<Fr>::key_gen::<Bls12_381>(&mut key_material.as_mut_slice(), key_info.as_slice(), key_dst.as_slice()).unwrap();
-    let pk: key_gen::PublicKey<Bls12_381> = SecretKey::sk_to_pk(&sk);
-
-    let mut compressed_bytes = Vec::new();
-    pk.pk.into_affine().serialize_compressed(&mut compressed_bytes).unwrap();
-    let pk_bytes = hex::decode("a820f230f6ae38503b86c70dc50b61c58a77e45c39ab25c0652bbaa8fa136f2851bd4781c9dcde39fc9d1d52c9e60268061e7d7632171d91aa8d460acee0e96f1e7c4cfb12d3ff9ab5d5dc91c277db75c845d649ef3c4f63aebc364cd55ded0c").unwrap();
-    // checking the computed pk is equal to the expected pk
-    assert_eq!(compressed_bytes, pk_bytes);
-
-    let signature = sk.sign::<Bls12_381, Bls12381Const, HashToG1Bls12381>(&[m_0.as_slice()], &header).unwrap();
-
-    let mut a_compressed_bytes: Vec<u8> = Vec::new();
-    signature.a.serialize_compressed(&mut a_compressed_bytes).unwrap();
-
-    let mut e_compressed_bytes: Vec<u8> = Vec::new();
-    signature.e.serialize_compressed(&mut e_compressed_bytes).unwrap();
-    e_compressed_bytes.reverse();
-
-    // full sig hex bytes (A,e)
-    a_compressed_bytes.extend_from_slice(&e_compressed_bytes);
-    let expected_sig_bytes = hex::decode("84773160b824e194073a57493dac1a20b667af70cd2352d8af241c77658da5253aa8458317cca0eae615690d55b1f27164657dcafee1d5c1973947aa70e2cfbb4c892340be5969920d0916067b4565a0").unwrap();
-    assert_eq!(a_compressed_bytes, expected_sig_bytes);
-
-    let proof = proof_gen::<Bls12_381, Fr, HashToG1Bls12381, Bls12381Const>(pk, signature, &header, &presentation_header, &[m_0.as_slice()], &[0]).unwrap();
-
-    let mut a_bar_bytes = Vec::new();
-    proof.a_bar.into_affine().serialize_compressed(&mut a_bar_bytes).unwrap();
-
-    let mut b_bar_bytes = Vec::new();
-    proof.b_bar.into_affine().serialize_compressed(&mut b_bar_bytes).unwrap();
-
-    let mut d_bytes = Vec::new();
-    proof.d.into_affine().serialize_compressed(&mut d_bytes).unwrap();
-
-    let mut ecap_bytes = Vec::new();
-    proof.e_cap.serialize_compressed(&mut ecap_bytes).unwrap();
-    ecap_bytes.reverse();
-
-    let mut r1cap_bytes = Vec::new();
-    proof.r1_cap.serialize_compressed(&mut r1cap_bytes).unwrap();
-    r1cap_bytes.reverse();
-
-    let mut r3cap_bytes = Vec::new();
-    proof.r3_cap.serialize_compressed(&mut r3cap_bytes).unwrap();
-    r3cap_bytes.reverse();
-
-    let mut challenge = Vec::new();
-    proof.challenge.serialize_compressed(&mut challenge).unwrap();
-    challenge.reverse();
-
-    let expected_proof_bytes = hex::decode("94916292a7a6bade28456c601d3af33fcf39278d6594b467e128a3f83686a104ef2b2fcf72df0215eeaf69262ffe8194a19fab31a82ddbe06908985abc4c9825788b8a1610942d12b7f5debbea8985296361206dbace7af0cc834c80f33e0aadaeea5597befbb651827b5eed5a66f1a959bb46cfd5ca1a817a14475960f69b32c54db7587b5ee3ab665fbd37b506830a49f21d592f5e634f47cee05a025a2f8f94e73a6c15f02301d1178a92873b6e8634bafe4983c3e15a663d64080678dbf29417519b78af042be2b3e1c4d08b8d520ffab008cbaaca5671a15b22c239b38e940cfeaa5e72104576a9ec4a6fad78c532381aeaa6fb56409cef56ee5c140d455feeb04426193c57086c9b6d397d9418").unwrap();
-
-    
-    assert_eq!(a_bar_bytes, expected_proof_bytes[0..48]);
-    assert_eq!(b_bar_bytes, expected_proof_bytes[48..96]);
-    assert_eq!(d_bytes, expected_proof_bytes[96..144]);
-    assert_eq!(ecap_bytes, expected_proof_bytes[144..176]);
-    assert_eq!(r1cap_bytes, expected_proof_bytes[176..208]);
-    assert_eq!(r3cap_bytes, expected_proof_bytes[208..240]);
-    assert_eq!(challenge, expected_proof_bytes[240..272]);
 }

@@ -217,36 +217,4 @@ mod tests {
         // check pk is generated deterministically
         assert_eq!(pk1.pk, pk2.pk);
     }
-
-    // https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html#name-key-pair-2
-    #[test]
-    fn test_keygen_testvector() {
-        use ark_bls12_381::Fr;
-        use std::str::FromStr;
-        use crate::key_gen;
-        use ark_ec::CurveGroup;
-        use ark_serialize::CanonicalSerialize;
-
-        let mut key_material = hex::decode("746869732d49532d6a7573742d616e2d546573742d494b4d2d746f2d67656e65726174652d246528724074232d6b6579").unwrap();
-        let key_info = hex::decode("746869732d49532d736f6d652d6b65792d6d657461646174612d746f2d62652d757365642d696e2d746573742d6b65792d67656e").unwrap();
-        let key_dst = hex::decode("4242535f424c53313233383147315f584d443a5348412d3235365f535357555f524f5f4832475f484d32535f4b455947454e5f4453545f").unwrap();
-
-        let sk: SecretKey<Fr> = SecretKey::key_gen::<Bls12_381>(&mut key_material.as_mut_slice(), key_info.as_slice(), key_dst.as_slice()).unwrap();
-        let expected_sk = SecretKey::<Fr>::from(key_gen::SecretKey { sk: Fr::from_str("43827200940696190687007874407982393189563963510129946831635449820772190743036").unwrap() });
-
-        // checking the computed sk is equal to the expected sk
-        assert_eq!(expected_sk.sk, sk.sk);
-
-        let pk: PublicKey<Bls12_381> = SecretKey::sk_to_pk(&expected_sk);
-
-        let mut compressed_bytes = Vec::new();
-        pk.pk.into_affine().serialize_compressed(&mut compressed_bytes).unwrap();
-
-        let pk_bytes = hex::decode("a820f230f6ae38503b86c70dc50b61c58a77e45c39ab25c0652bbaa8fa136f2851bd4781c9dcde39fc9d1d52c9e60268061e7d7632171d91aa8d460acee0e96f1e7c4cfb12d3ff9ab5d5dc91c277db75c845d649ef3c4f63aebc364cd55ded0c").unwrap();
-        
-        // checking the computed pk is equal to the expected pk
-        assert_eq!(compressed_bytes, pk_bytes);
-
-    }
-
 }

@@ -2,13 +2,13 @@
 
 ## Warning!!!
 
-*This code is unaudited and has not yet been tested against test vectors. Use it with caution and do not rely on it for production use without thorough testing and review.*
+*This code is unaudited. Use it with caution and do not rely on it for production use without thorough testing and review.*
 
 ## Overview
 
 This repository implements the BBS+ signature scheme supporting over both the BN254(arkworks) and BLS12381(arkworks) pairing curve. BBS+ is a cryptographic scheme that supports efficient multi-message signing, selective disclosure, and proof of knowledge, making it suitable for privacy-preserving applications such as anonymous credentials and digital signatures.
 
-The implementation follows the specifications outlined in the [IETF draft for BBS signatures](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html) and leverages the BN254 & BLS12-381 pairing-friendly curve for cryptographic operations.
+The implementation follows the specifications outlined in the [IRTF draft for BBS signatures](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html) and leverages the BN254 & BLS12-381 pairing-friendly curve for cryptographic operations. This implementation passes the IRTF draft's test vectors.
 
 ## Features
 
@@ -16,7 +16,7 @@ The implementation follows the specifications outlined in the [IETF draft for BB
 - **Signature Generation**: Sign multiple messages using the BBS+ signature scheme.
 - **Selective Disclosure**: Support for creating zero-knowledge proofs to disclose specific signed messages without revealing others.
 - **Signature Verification**: Verify both the full signature and selectively disclosed signatures.
-- **Security**: Built using the BN254 pairing-friendly curve, which provides efficient and secure cryptographic operations.
+- **Security**: Built using the BN254 and Bls12-381 pairing-friendly curve, which provides efficient and secure cryptographic operations.
 
 ## Usage
 

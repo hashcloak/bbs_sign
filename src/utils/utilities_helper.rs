@@ -1,14 +1,11 @@
+use ark_bls12_381::Fr as FrBls12_381;
 use ark_bn254::Fr;
-use ark_ff::{Field, PrimeField, BigInt};
+use ark_ff::Field;
+use digest::generic_array::{typenum::U32, GenericArray};
 use num_bigint::BigUint;
 use num_integer::Integer;
-use sha2::{Sha256, digest::Digest};
+use sha2::{digest::Digest, Sha256};
 use subtle::{Choice, ConditionallySelectable};
-use ark_bls12_381::Fr as FrBls12_381;
-use digest::generic_array::{
-    GenericArray, 
-    typenum::U32
-};
 
 pub trait FromOkm<const L: usize, F: Field>: Sized {
     /// Convert a byte sequence into a scalar
@@ -23,43 +20,28 @@ impl<const L: usize> FromOkm<L, Fr> for Fr {
         );
 
         let mut x = BigUint::from_bytes_be(&data[..]);
-            x = x.mod_floor(&p);
+        x = x.mod_floor(&p);
 
-            Fr::from(x)
+        Fr::from(x)
     }
 }
 
 #[allow(non_snake_case)]
 impl<const L: usize> FromOkm<L, FrBls12_381> for FrBls12_381 {
     fn from_okm(data: &[u8; L]) -> Self {
-
-        const F_2_192_BIG_INT: BigInt<4> = BigInt::new([
-            0x59476ebc41b4528fu64,
-            0xc5a30cb243fcc152u64,
-            0x2b34e63940ccbd72u64,
-            0x1e179025ca247088u64,
-        ]);
-
-        let F_2_192 = FrBls12_381::new(F_2_192_BIG_INT);
-        
-        let mut elm_array = [0u8; 32];
-        elm_array[8..].copy_from_slice(data[0..24].as_ref());
-
-        let mut elm = FrBls12_381::from_be_bytes_mod_order(&elm_array);
-        elm = elm * F_2_192;
-        
-        let mut elm_array = [0u8; 32];
-        elm_array[8..].copy_from_slice(data[24..48].as_ref());
-        let elm2 = FrBls12_381::from_be_bytes_mod_order(&elm_array);
-
-        elm + elm2
+        let p = BigUint::from_bytes_be(
+            &hex::decode("73EDA753299D7D483339D80809A1D80553BDA402FFFE5BFEFFFFFFFF00000001")
+                .unwrap(),
+        );
+        let mut x = BigUint::from_bytes_be(&data[..]);
+        x = x.mod_floor(&p);
+        FrBls12_381::from(x)
     }
 }
 
 pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
-        
     let b_in_bytes: usize = 32;
-    let ell = (len_in_bytes + b_in_bytes - 1 )/ b_in_bytes;
+    let ell = (len_in_bytes + b_in_bytes - 1) / b_in_bytes;
 
     if ell > 255 {
         panic!("ell was too big in expand_message_xmd");
@@ -70,7 +52,7 @@ pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
     }
 
     let b_0 = Sha256::new()
-        .chain_update([0u8; 64])    // s_in_bytes for sha256 = 64
+        .chain_update([0u8; 64]) // s_in_bytes for sha256 = 64
         .chain_update(msg)
         .chain_update([(len_in_bytes >> 8) as u8, len_in_bytes as u8, 0u8])
         .chain_update(dst)
@@ -95,10 +77,8 @@ pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
             .enumerate()
             .for_each(|(j, (b0val, bi1val))| tmp[j] = b0val ^ bi1val);
         for b in b_vals {
-            buf[offset % len_in_bytes].conditional_assign(
-                &b,
-                Choice::from(if offset < len_in_bytes { 1 } else { 0 }),
-            );
+            buf[offset % len_in_bytes]
+                .conditional_assign(&b, Choice::from(if offset < len_in_bytes { 1 } else { 0 }));
             offset += 1;
         }
         b_vals = Sha256::new()
@@ -110,10 +90,8 @@ pub fn expand_message(msg: &[u8], dst: &[u8], len_in_bytes: usize) -> Vec<u8> {
     }
     for b in b_vals {
         buf[offset % len_in_bytes]
-        .conditional_assign(&b, Choice::from(if offset < len_in_bytes { 1 } else { 0 }));
+            .conditional_assign(&b, Choice::from(if offset < len_in_bytes { 1 } else { 0 }));
         offset += 1;
     }
     buf.into()
 }
-
-

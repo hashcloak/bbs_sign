@@ -23,7 +23,7 @@ mod test_vector {
     //  generator_dst = [b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_".as_slice(), b"H2G_HM2S_SIG_GENERATOR_DST_"].concat();
     //  generator_seed = [b"BBS_QUUX-V01-CS02-with-BN254G1_XMD:SHA-256_SVDW_RO_".as_slice(), b"H2G_HM2S_BP_MESSAGE_GENERATOR_SEED"].concat();
 
-    fn scalar_to_hex<F: Field>(scalar: F) -> String {
+    pub fn scalar_to_hex<F: Field>(scalar: F) -> String {
         let mut bytes = Vec::new();
         scalar.serialize_compressed(&mut bytes).unwrap();
         bytes.reverse();
@@ -31,7 +31,7 @@ mod test_vector {
         hex::encode(bytes)
     }
 
-    fn g1_to_hex<E: Pairing>(point: E::G1) -> String {
+    pub fn g1_to_hex<E: Pairing>(point: E::G1) -> String {
         let mut bytes = Vec::new();
         point
             .into_affine()
@@ -41,7 +41,7 @@ mod test_vector {
         hex::encode(bytes)
     }
 
-    fn g2_to_hex<E: Pairing>(point: E::G2) -> String {
+    pub fn g2_to_hex<E: Pairing>(point: E::G2) -> String {
         let mut bytes = Vec::new();
         point
             .into_affine()
@@ -190,9 +190,13 @@ mod test_vector {
         assert_eq!(a_hex, "84773160b824e194073a57493dac1a20b667af70cd2352d8af241c77658da5253aa8458317cca0eae615690d55b1f27164657dcafee1d5c1973947aa70e2cfbb4c892340be5969920d0916067b4565a0")
     }
 
+}
+
+#[cfg(test)]
+mod tests {
     // The Proof Fixtures uses mocked_calculate_random_scalars instead of calculate_random_scalars for the test vectors
     // used in function core_proof_gen in `proof_gen.rs`
-    #[cfg(testvector_bls12_381)]
+    #[cfg(all(feature = "testvector_bls12_381"))]
     #[test]
     fn test_proof_testvector() {
         use crate::constants::Bls12381Const;
@@ -200,6 +204,8 @@ mod test_vector {
         use crate::key_gen::SecretKey;
         use crate::utils::interface_utilities::HashToG1Bls12381;
         use ark_bls12_381::{Bls12_381, Fr};
+        use crate::proof_gen::proof_gen;
+        use crate::tests::test_vector::test_vector::{ g1_to_hex, scalar_to_hex };
 
         let m_0 = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02")
             .unwrap();

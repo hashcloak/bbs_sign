@@ -138,9 +138,10 @@ where
         }
     }
 
+    #[cfg(not(feature = "testvector_bls12_381"))]
     let random_scalars = calculate_random_scalars::<48, F>(5 + l - r);
 
-    #[cfg(testvector_bls12_381)]
+    #[cfg(all(feature = "testvector_bls12_381"))]
     let random_scalars = mocked_calculate_random_scalars::<F>(5 + l - r);
 
     let full_indexes: HashSet<usize> = HashSet::from_iter(0..l);

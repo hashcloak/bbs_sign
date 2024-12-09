@@ -18,6 +18,13 @@ The implementation follows the specifications outlined in the [IRTF draft for BB
 - **Signature Verification**: Verify both the full signature and selectively disclosed signatures.
 - **Security**: Built using the BN254 and Bls12-381 pairing-friendly curve, which provides efficient and secure cryptographic operations.
 
+## Building and Testing
+
+- Build: `cargo build`
+- Test: `cargo test`
+
+Note that the draft uses `mocked_calculate_random_scalars` instead of `calculate_random_scalars` for the proof generation test-vectors. To run the tests which uses `mocked_calculate_random_scalars`, run: `cargo test --features testvector_bls12_381`
+
 ## Usage
 
 Add the following library under dependencies in the Cargo.toml of your project:

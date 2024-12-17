@@ -81,12 +81,6 @@ impl<F: Field + FromOkm<48, F>> SecretKey<F> {
             api_id,
         );
 
-        // let mut domain_bytes = Vec::new();
-        // domain.serialize_compressed(&mut domain_bytes).unwrap();
-        // domain_bytes.reverse();
-        // let expected_domain = hex::decode("25d57fab92a8274c68fde5c3f16d4b275e4a156f211ae34b3ab32fbaf506ed5c").unwrap();
-        // assert_eq!(domain_bytes, expected_domain);
-
         let hash_to_scalar_dst = [api_id, b"H2S_"].concat();
 
         let mut sk_compressed_bytes = Vec::new();

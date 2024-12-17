@@ -189,7 +189,6 @@ mod test_vector {
 
         assert_eq!(a_hex, "84773160b824e194073a57493dac1a20b667af70cd2352d8af241c77658da5253aa8458317cca0eae615690d55b1f27164657dcafee1d5c1973947aa70e2cfbb4c892340be5969920d0916067b4565a0")
     }
-
 }
 
 #[cfg(test)]
@@ -202,10 +201,10 @@ mod tests {
         use crate::constants::Bls12381Const;
         use crate::key_gen;
         use crate::key_gen::SecretKey;
+        use crate::proof_gen::proof_gen;
+        use crate::tests::test_vector::test_vector::{g1_to_hex, scalar_to_hex};
         use crate::utils::interface_utilities::HashToG1Bls12381;
         use ark_bls12_381::{Bls12_381, Fr};
-        use crate::proof_gen::proof_gen;
-        use crate::tests::test_vector::test_vector::{ g1_to_hex, scalar_to_hex };
 
         let m_0 = hex::decode("9872ad089e452c7b6e283dfac2a80d58e8d0ff71cc4d5e310a1debdda4a45f02")
             .unwrap();

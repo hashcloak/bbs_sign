@@ -341,11 +341,6 @@ where
         commitments.push(random_scalars[i + 5] + undisclosed_messages[i] * challenge.scalar);
     }
 
-    // let mut bytes = Vec::new();
-    // random_scalars[4].serialize_compressed(&mut bytes).unwrap();
-    // bytes.reverse();
-    // assert_eq!(bytes, hex::decode("639e3417007d38e5d34ba8c511e836768ddc2669fdd3faff5c14ad27ac2b2da1").unwrap());
-
     Ok(Proof {
         a_bar: init_res.points[0],
         b_bar: init_res.points[1],

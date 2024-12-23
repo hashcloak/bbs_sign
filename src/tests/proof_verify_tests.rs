@@ -1,3 +1,13 @@
+// The tests here are compatible with the verifier contract as well.
+// The implementation of the contract is here: https://github.com/hashcloak/bbs_verifier/
+
+// Since the 32 generators are pre-generated and hardcoded in the solidity contract,
+// The solidity verifier supports signature and proof verification of upto 31 messages
+
+// The contract also avoids the use of msg_to_scalars function
+// That implies, the msg are assumed to be already hashed and converted to scalars
+// to run the solidity comaptible test: `cargo test --features=verifier_contract`
+
 #[cfg(test)]
 mod tests {
     use ark_bn254::{Bn254, Fr, G1Affine as G1};

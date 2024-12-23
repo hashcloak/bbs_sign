@@ -114,6 +114,7 @@ impl<F: Field> SecretKey<F> {
     }
 }
 
+#[cfg(not(feature = "verifier_contract"))]
 #[cfg(test)]
 mod tests {
     use crate::key_gen::PublicKey;

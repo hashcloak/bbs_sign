@@ -10,6 +10,8 @@ This repository implements the BBS+ signature scheme supporting over both the BN
 
 The implementation follows the specifications outlined in the [IRTF draft for BBS signatures](https://identity.foundation/bbs-signature/draft-irtf-cfrg-bbs-signatures.html) and leverages the BN254 & BLS12-381 pairing-friendly curve for cryptographic operations. This implementation passes the IRTF draft's test vectors.
 
+There is also a verifier contract for verifying the signature and zero-knowledge proof of BBS+ signatures implemented here: https://github.com/hashcloak/bbs_verifier. Since the 32 generators are pre-generated and hardcoded in the solidity contract, the solidity verifier supports signature and proof verification of upto 31 messages. The contract also avoids the use of msg_to_scalars function. That implies, the msg are assumed to be already hashed and converted to scalars.
+
 ## Features
 
 - **Key Generation**: Generate public and secret keys using secure cryptographic methods as mentioned in the draft.
@@ -22,6 +24,7 @@ The implementation follows the specifications outlined in the [IRTF draft for BB
 
 - Build: `cargo build`
 - Test: `cargo test`
+- To run the [solidity comaptible](https://github.com/hashcloak/bbs_verifier) test: `cargo test --features=verifier_contract`
 
 Note that the draft uses `mocked_calculate_random_scalars` instead of `calculate_random_scalars` for the proof generation test-vectors. To run the tests which uses `mocked_calculate_random_scalars`, run: `cargo test --features testvector_bls12_381`
 

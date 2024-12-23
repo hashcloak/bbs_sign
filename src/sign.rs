@@ -44,7 +44,12 @@ impl<F: Field + FromOkm<48, F>> SecretKey<F> {
         let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
         let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
+
+        #[cfg(not(feature = "verifier_contract"))]
         let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
+
+        #[cfg(all(feature = "verifier_contract"))]
+        let generators = create_generators::<E, H>(32, &api_id);
 
         self.core_sign::<E, C>(
             generators.as_slice(),
@@ -68,6 +73,7 @@ impl<F: Field + FromOkm<48, F>> SecretKey<F> {
         E::G2: Mul<F, Output = E::G2>,
         E::G1: Mul<F, Output = E::G1>,
     {
+        #[cfg(not(feature = "verifier_contract"))]
         if messages.len() + 1 != generators.len() {
             return Err(SignatureError::InvalidMessageAndGeneratorsLength);
         }
@@ -76,7 +82,7 @@ impl<F: Field + FromOkm<48, F>> SecretKey<F> {
         let domain = calculate_domain::<E, F, 48>(
             public_key,
             generators[0],
-            &generators[1..],
+            &generators[1..messages.len() + 1],
             header,
             api_id,
         );
@@ -115,7 +121,7 @@ impl<F: Field + FromOkm<48, F>> SecretKey<F> {
 
         b = b + generators[0] * domain;
 
-        for i in 1..generators.len() {
+        for i in 1..messages.len() + 1 {
             b = b + generators[i] * messages[i - 1];
         }
 

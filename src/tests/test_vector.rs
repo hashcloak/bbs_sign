@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(not(feature = "verifier_contract"))]
 mod test_vector {
     use crate::constants::{Bls12381Const, Constants};
     use crate::key_gen::{PublicKey, SecretKey};
@@ -192,7 +193,7 @@ mod test_vector {
 }
 
 #[cfg(test)]
-mod tests {
+mod test_proof_testvector {
     // The Proof Fixtures uses mocked_calculate_random_scalars instead of calculate_random_scalars for the test vectors
     // used in function core_proof_gen in `proof_gen.rs`
     #[cfg(all(feature = "testvector_bls12_381"))]

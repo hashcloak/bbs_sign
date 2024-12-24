@@ -30,7 +30,15 @@ impl<E: Pairing> PublicKey<E> {
     {
         let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
         let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
+        
+        #[cfg(not(feature = "verifier_contract"))]
         let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
+
+        #[cfg(all(feature = "verifier_contract"))]
+        assert!(messages.len() < 32);
+
+        #[cfg(all(feature = "verifier_contract"))]
+        let generators = create_generators::<E, H>(32, &api_id);
 
         self.core_verify::<F, C, H>(
             signature,
@@ -57,17 +65,23 @@ impl<E: Pairing> PublicKey<E> {
         E::G2: Mul<F, Output = E::G2>,
         E::G1: Mul<F, Output = E::G1>,
     {
+        #[cfg(not(feature = "verifier_contract"))]
         if messages.len() + 1 != generators.len() {
             return Err(SignatureError::InvalidMessageAndGeneratorsLength);
         }
 
-        let domain =
-            calculate_domain::<E, F, 48>(self, generators[0], &generators[1..], header, api_id);
+        let domain = calculate_domain::<E, F, 48>(
+            self,
+            generators[0],
+            &generators[1..messages.len() + 1],
+            header,
+            api_id,
+        );
 
         let mut b: E::G1 = C::P1();
         b = b + generators[0] * domain;
 
-        for i in 1..generators.len() {
+        for i in 1..messages.len() + 1 {
             b = b + generators[i] * messages[i - 1];
         }
 

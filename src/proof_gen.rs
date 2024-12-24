@@ -56,8 +56,7 @@ where
         }
     }
 }
-
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum ProofGenError {
     #[error("Invalid disclosed indices length: The disclosed indexes length must less or equal to the messages length.")]
     InvalidDisclosedIndicesLength,
@@ -94,7 +93,12 @@ where
 {
     let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
     let message_scalars = msg_to_scalars::<E, F, 48>(messages, &api_id);
+
+    #[cfg(not(feature = "verifier_contract"))]
     let generators = create_generators::<E, H>(messages.len() + 1, &api_id);
+
+    #[cfg(all(feature = "verifier_contract"))]
+    let generators = create_generators::<E, H>(32, &api_id);
 
     core_proof_gen::<E, F, C>(
         pk,
@@ -221,6 +225,7 @@ where
     E::G2: Mul<F, Output = E::G2>,
     E::G1: Mul<F, Output = E::G1>,
 {
+    #[cfg(not(feature = "verifier_contract"))]
     if messages.len() + 1 != generators.len() {
         return Err(ProofGenError::InvalidMessageAndGeneratorsLength);
     }
@@ -233,7 +238,13 @@ where
         return Err(ProofGenError::InvalidUndisclosedIndicesLength);
     }
 
-    let domain = calculate_domain::<E, F, 48>(&pk, generators[0], &generators[1..], header, api_id);
+    let domain = calculate_domain::<E, F, 48>(
+        &pk,
+        generators[0],
+        &generators[1..messages.len() + 1],
+        header,
+        api_id,
+    );
 
     let mut b: E::G1 = C::P1() + generators[0] * domain;
 
@@ -246,7 +257,7 @@ where
     let t1 = a_bar * random_scalars[2] + d * random_scalars[3];
     let mut t2 = d * random_scalars[4];
 
-    let msg_generators = generators[1..].to_vec();
+    let msg_generators = generators[1..messages.len() + 1].to_vec();
     for i in 5..random_scalars.len() {
         t2 = t2 + msg_generators[undisclosed_indexes[i - 5]] * random_scalars[i];
     }

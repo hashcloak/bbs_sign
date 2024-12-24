@@ -35,10 +35,18 @@ where
     let api_id = [C::CIPHERSUITE_ID, b"H2G_HM2S_"].concat();
 
     let message_scalars = msg_to_scalars::<E, F, 48>(disclosed_messages, &api_id);
+
+    #[cfg(not(feature = "verifier_contract"))]
     let generators = create_generators::<E, H>(
         proof.commitments.len() + disclosed_indexes.len() + 1,
         &api_id,
     );
+
+    #[cfg(all(feature = "verifier_contract"))]
+    assert!(proof.commitments.len() + disclosed_indexes.len() < 32);
+
+    #[cfg(all(feature = "verifier_contract"))]
+    let generators = create_generators::<E, H>(32, &api_id);
 
     core_proof_verify::<E, F, C>(
         pk,
@@ -136,7 +144,7 @@ where
     if disclosed_messages.len() != r {
         return Err(ProofGenError::InvalidIndicesAndMessagesLength);
     }
-
+    #[cfg(not(feature = "verifier_contract"))]
     if generators.len() != l + 1 {
         return Err(ProofGenError::InvalidMessageAndGeneratorsLength);
     }
@@ -149,13 +157,14 @@ where
     let mut undisclosed_indexes: Vec<usize> = undisclosed_set.into_iter().collect();
     undisclosed_indexes.sort();
 
-    let domain = calculate_domain::<E, F, 48>(&pk, generators[0], &generators[1..], header, api_id);
+    let domain =
+        calculate_domain::<E, F, 48>(&pk, generators[0], &generators[1..l + 1], header, api_id);
 
     let t1 =
         proof.b_bar * proof.challenge.scalar + proof.a_bar * proof.e_cap + proof.d * proof.r1_cap;
     let mut bv = C::P1() + generators[0] * domain;
 
-    let msg_generators = generators[1..].to_vec();
+    let msg_generators = generators[1..l + 1].to_vec();
 
     let mut i = 0;
     for &index in disclosed_indexes.iter() {

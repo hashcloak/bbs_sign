@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(not(feature = "verifier_contract"))]
 mod tests {
     use ark_bn254::{Bn254, Fr, G1Affine as G1};
     use rand::Rng;
